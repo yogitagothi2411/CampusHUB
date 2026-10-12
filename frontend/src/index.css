@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* ── Pastel Palette System — Richer, Deeper Tone ─────────────────────────── */
+  /* Page backgrounds — warm lavender tint, not white */
+  --color-pastel-bg:        #e8e2f2;
+  /* Card / panel surfaces — slightly lighter than bg */
+  --color-pastel-card:      #f0ebf8;
+  /* Sidebar / nav surface — distinct, richer */
+  --color-pastel-sidebar:   #e2dbed;
+  /* Input / form fields — tinted, never plain white */
+  --color-pastel-input:     #ede8f6;
+  /* Borders — clearly visible against tinted surfaces */
+  --color-pastel-border:    #cfc7df;
+
+  /* ── Accent Tones ─────────────────────────────────────────────────────────── */
+  --color-pastel-blush:        #f0c8d4;
+  --color-pastel-blush-dark:   #c97088;
+  --color-pastel-lavender:     #d9d2f0;
+  --color-pastel-lavender-dark:#7a6da8;
+  --color-pastel-powder:       #c8dcf2;
+  --color-pastel-powder-dark:  #5f8fb8;
+  --color-pastel-peach:        #f5d4c0;
+  --color-pastel-peach-dark:   #c47a58;
+  --color-pastel-mauve:        #c8bdd6;
+  --color-pastel-mauve-dark:   #5a4d6b;
+
+  /* ── Text ─────────────────────────────────────────────────────────────────── */
+  --color-text-main:   #1e1730;
+  --color-text-muted:  #5a5168;
+  --color-text-light:  #857b92;
+}
+
+html, body {
+  height: 100%;
+}
+
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: var(--color-pastel-bg);
+  color: var(--color-text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Card surfaces ─────────────────────────────────────────────────────────── */
+.card-pastel {
+  background-color: var(--color-pastel-card);
+  border: 1px solid var(--color-pastel-border);
+  border-radius: 1rem;
+  box-shadow: 0 2px 12px -2px rgba(80, 65, 120, 0.10);
+}
+
+.card-pastel-interactive {
+  background-color: var(--color-pastel-card);
+  border: 1px solid var(--color-pastel-border);
+  border-radius: 1rem;
+  box-shadow: 0 2px 12px -2px rgba(80, 65, 120, 0.10);
+  transition: all 0.2s ease-in-out;
+}
+
+.card-pastel-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -2px rgba(80, 65, 120, 0.18);
+  border-color: var(--color-pastel-lavender-dark);
+}
