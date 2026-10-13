@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions
+ xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+ xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+ xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+ xmlns:tns="https://contracts.campushub.example/sms"
+ xmlns:sms="https://contracts.campushub.example/sms/types"
+ targetNamespace="https://contracts.campushub.example/sms"
+ name="CampusHUBSmsPartnerService">
+  <wsdl:types>
+    <xsd:schema targetNamespace="https://contracts.campushub.example/sms/types" elementFormDefault="qualified">
+      <xsd:element name="SendEventRegistrationSMS">
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="messageReference" type="xsd:string"/>
+          <xsd:element name="recipientPhone" type="xsd:string"/>
+          <xsd:element name="studentReference" type="xsd:string"/>
+          <xsd:element name="eventId" type="xsd:string"/>
+          <xsd:element name="eventName" type="xsd:string"/>
+          <xsd:element name="messageText" type="xsd:string"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="SendEventRegistrationSMSResponse">
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="messageReference" type="xsd:string"/>
+          <xsd:element name="providerMessageId" type="xsd:string"/>
+          <xsd:element name="status" type="xsd:string"/>
+          <xsd:element name="acceptedAt" type="xsd:dateTime"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="PartnerCredentials">
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="clientId" type="xsd:string"/>
+          <xsd:element name="clientSecret" type="xsd:string"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="PartnerCredentialsHeader">
+    <wsdl:part name="credentials" element="sms:PartnerCredentials"/>
+  </wsdl:message>
+  <wsdl:message name="SendEventRegistrationSMSInput">
+    <wsdl:part name="parameters" element="sms:SendEventRegistrationSMS"/>
+  </wsdl:message>
+  <wsdl:message name="SendEventRegistrationSMSOutput">
+    <wsdl:part name="parameters" element="sms:SendEventRegistrationSMSResponse"/>
+  </wsdl:message>
+  <wsdl:portType name="CampusHUBSmsPortType">
+    <wsdl:operation name="SendEventRegistrationSMS">
+      <wsdl:input message="tns:SendEventRegistrationSMSInput"/>
+      <wsdl:output message="tns:SendEventRegistrationSMSOutput"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="CampusHUBSmsSoapBinding" type="tns:CampusHUBSmsPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="SendEventRegistrationSMS">
+      <soap:operation soapAction="https://contracts.campushub.example/sms/SendEventRegistrationSMS" style="document"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="CampusHUBSmsPartnerService">
+    <wsdl:port name="CampusHUBSmsSoapPort" binding="tns:CampusHUBSmsSoapBinding">
+      <soap:address location="https://sandbox.sms-partner.example/soap/SmsService"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

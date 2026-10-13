@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope
+ xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+ xmlns:sms="https://contracts.campushub.example/sms/types">
+  <soapenv:Header>
+    <sms:PartnerCredentials>
+      <sms:clientId>CAMPUSHUB_SANDBOX</sms:clientId>
+      <sms:clientSecret>REPLACE_WITH_SANDBOX_SECRET</sms:clientSecret>
+    </sms:PartnerCredentials>
+  </soapenv:Header>
+  <soapenv:Body>
+    <sms:SendEventRegistrationSMS>
+      <sms:messageReference>CH-SMS-2026-000184</sms:messageReference>
+      <sms:recipientPhone>+919876543210</sms:recipientPhone>
+      <sms:studentReference>STU-202351001</sms:studentReference>
+      <sms:eventId>evt-hackiiitv-2026</sms:eventId>
+      <sms:eventName>HackIIITV 2026: 24-Hour National Hackathon</sms:eventName>
+      <sms:messageText>CampusHUB: Your registration for HackIIITV 2026 is confirmed. Please check CampusHUB for event details.</sms:messageText>
+    </sms:SendEventRegistrationSMS>
+  </soapenv:Body>
+</soapenv:Envelope>
