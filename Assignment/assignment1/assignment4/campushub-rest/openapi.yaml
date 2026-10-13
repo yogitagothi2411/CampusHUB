@@ -1,0 +1,187 @@
+openapi: 3.0.3
+info:
+  title: CampusHUB Registration API
+  version: 1.0.0
+  description: REST API for campus event registrations, adapted for the CampusHUB project.
+servers:
+  - url: http://127.0.0.1:8000
+paths:
+  /registrations:
+    post:
+      summary: Create an event registration
+      operationId: createRegistration
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema: { type: string }
+          description: Reuse the same key when retrying the same create request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegistrationCreate' }
+      responses:
+        '201':
+          description: Registration created
+          headers:
+            Location:
+              description: URI of the newly created registration
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Registration' }
+        '200':
+          description: Original result returned for a repeated Idempotency-Key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Registration' }
+        '400':
+          description: Malformed JSON or invalid request body
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422':
+          description: Event service refuses the event reference
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '503':
+          description: Event dependency is unavailable
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+    get:
+      summary: List registrations
+      operationId: listRegistrations
+      parameters:
+        - in: query
+          name: eventId
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string, enum: [CONFIRMED, CANCELLED] }
+      responses:
+        '200':
+          description: Filtered registration list
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RegistrationList' }
+  /registrations/{registration_id}:
+    parameters:
+      - in: path
+        name: registration_id
+        required: true
+        schema: { type: string }
+    get:
+      summary: Get one registration
+      operationId: getRegistration
+      parameters:
+        - in: header
+          name: If-None-Match
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: Registration found
+          headers:
+            ETag: { schema: { type: string } }
+            Cache-Control: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Registration' }
+        '304': { description: Registration has not changed; no response body }
+        '404':
+          description: Registration not found
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+    options:
+      summary: Describe supported methods
+      responses:
+        '204':
+          description: Supported methods listed in Allow header
+          headers:
+            Allow: { schema: { type: string, example: 'GET, POST, OPTIONS' } }
+  /registrations/{registration_id}/cancellation:
+    post:
+      summary: Cancel a registration
+      operationId: cancelRegistration
+      parameters:
+        - in: path
+          name: registration_id
+          required: true
+          schema: { type: string }
+        - in: header
+          name: If-Match
+          required: false
+          schema: { type: string }
+          description: Optional ETag precondition to prevent updating stale data.
+      responses:
+        '200':
+          description: Registration cancelled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Registration' }
+        '404':
+          description: Registration not found
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: Registration is already cancelled
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '412':
+          description: If-Match precondition failed
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+  /protected/demo:
+    get:
+      summary: Demonstrate Bearer header handling
+      parameters:
+        - in: header
+          name: Authorization
+          required: false
+          schema: { type: string }
+      responses:
+        '200': { description: Header accepted; token is not verified }
+        '401':
+          description: Missing or empty Bearer token
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+components:
+  schemas:
+    RegistrationCreate:
+      type: object
+      required: [eventId, studentReference]
+      properties:
+        eventId: { type: string, minLength: 1, maxLength: 100, example: evt-hackiiitv-2026 }
+        studentReference: { type: string, minLength: 1, maxLength: 100, example: STU-202351001 }
+    Registration:
+      type: object
+      required: [id, eventId, studentReference, status]
+      properties:
+        id: { type: string, example: '1' }
+        eventId: { type: string }
+        studentReference: { type: string }
+        status: { type: string, enum: [CONFIRMED, CANCELLED] }
+    RegistrationList:
+      type: object
+      required: [items, count]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Registration' }
+        count: { type: integer }
+    Problem:
+      type: object
+      required: [type, title, status, detail]
+      properties:
+        type: { type: string, example: about:blank }
+        title: { type: string, example: Not Found }
+        status: { type: integer, example: 404 }
+        detail: { type: string, example: Registration was not found. }

@@ -1,0 +1,5 @@
+Validation status
+=================
+- Automated pytest run: 7 passed.
+- OpenAPI YAML syntax: parsed successfully with PyYAML.
+- Formal OpenAPI schema validation: NOT RUN in this environment because openapi-spec-validator was not installed and package installation was unavailable. Before submission, open openapi.yaml in https://editor.swagger.io/ and save a screenshot showing zero errors, as required by the assignment.
