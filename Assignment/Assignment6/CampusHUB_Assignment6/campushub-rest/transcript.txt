@@ -1,0 +1,85 @@
+CampusHUB Assignment 6 — curl transcript
+========================================
+Base URL: http://127.0.0.1:8000
+
+NOTE: POST /registrations verifies eventId against the configured CampusHUB Event Service. For the successful examples, the Event Service must be running and return 200 for GET /events/1. Start this service with the same configuration used in Assignment 5.
+
+1) CREATE SUCCESS — 201 + Location
+$ curl -i -X POST http://127.0.0.1:8000/registrations \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  -H 'Idempotency-Key: reg-001' \
+  -d '{"eventId":"1","studentReference":"STU-001"}'
+
+Expected response (ID depends on current in-memory store):
+HTTP/1.1 201 Created
+content-type: application/json; charset=utf-8
+location: /registrations/1
+cache-control: no-store
+etag: "..."
+
+{"id":"1","eventId":"1","studentReference":"STU-001","status":"CONFIRMED"}
+
+2) REPLAY — same key and same body does not create a duplicate
+$ curl -i -X POST http://127.0.0.1:8000/registrations -H 'Content-Type: application/json' -H 'Idempotency-Key: reg-001' -d '{"eventId":"1","studentReference":"STU-001"}'
+Expected: HTTP/1.1 201 Created; Idempotency-Replayed: true; same registration body and Location.
+
+3) MISSING IDEMPOTENCY KEY — 400 Problem Details
+$ curl -i -X POST http://127.0.0.1:8000/registrations -H 'Content-Type: application/json' -d '{"eventId":"1","studentReference":"STU-002"}'
+Expected: HTTP/1.1 400 Bad Request
+content-type: application/problem+json; charset=utf-8
+{"type":"https://campushub.example/problems/bad-request","title":"Bad request","status":400,"detail":"Idempotency-Key header is required for registration creation."}
+
+4) TWO INVALID FIELDS — 422 with errors[]
+$ curl -i -X POST http://127.0.0.1:8000/registrations -H 'Content-Type: application/json' -H 'Idempotency-Key: bad-fields' -d '{"eventId":"","studentReference":""}'
+Expected: HTTP/1.1 422 Unprocessable Entity
+content-type: application/problem+json; charset=utf-8
+{"type":"https://campushub.example/problems/invalid-request","title":"Request validation failed","status":422,"detail":"One or more fields failed validation.","errors":[{"field":"eventId","reason":"String should have at least 1 character"},{"field":"studentReference","reason":"String should have at least 1 character"}]}
+
+5) UNKNOWN REGISTRATION — 404
+$ curl -i http://127.0.0.1:8000/registrations/99999
+Expected: HTTP/1.1 404 Not Found
+content-type: application/problem+json; charset=utf-8
+{"type":"https://campushub.example/problems/registration-not-found","title":"Registration not found","status":404,"detail":"Registration not found."}
+
+6) EVENT DOES NOT EXIST — 422 (requires Event Service to return 404 for that ID)
+$ curl -i -X POST http://127.0.0.1:8000/registrations -H 'Content-Type: application/json' -H 'Idempotency-Key: missing-event' -d '{"eventId":"99999","studentReference":"STU-003"}'
+Expected: HTTP/1.1 422 Unprocessable Entity with type ending /event-not-found and a safe detail that the referenced event does not exist.
+
+7) UPDATE WITHOUT TOKEN — 401
+$ curl -i -X PATCH http://127.0.0.1:8000/registrations/1 -H 'Content-Type: application/json' -H 'If-Match: "etag-from-GET"' -d '{"studentReference":"STU-NEW"}'
+Expected: HTTP/1.1 401 Unauthorized
+content-type: application/problem+json; charset=utf-8
+{"type":"https://campushub.example/problems/authentication-required","title":"Authentication required","status":401,"detail":"A non-empty Bearer token is required."}
+
+8) UPDATE WITHOUT If-Match — 428 (with valid token)
+$ curl -i -X PUT http://127.0.0.1:8000/registrations/1 -H 'Authorization: Bearer campushub-demo-token' -H 'Content-Type: application/json' -d '{"studentReference":"STU-NEW"}'
+Expected: HTTP/1.1 428 Precondition Required with Problem Details.
+
+9) STALE If-Match — 412 (with valid token)
+$ curl -i -X PUT http://127.0.0.1:8000/registrations/1 -H 'Authorization: Bearer campushub-demo-token' -H 'If-Match: "stale"' -H 'Content-Type: application/json' -d '{"studentReference":"STU-NEW"}'
+Expected: HTTP/1.1 412 Precondition Failed with Problem Details.
+
+10) XML NEGOTIATION
+$ curl -i http://127.0.0.1:8000/registrations/1 -H 'Accept: application/xml'
+Expected: HTTP/1.1 200 OK
+content-type: application/xml; charset=utf-8
+<?xml version="1.0" encoding="utf-8"?><response><id>1</id><eventId>1</eventId><studentReference>STU-001</studentReference><status>CONFIRMED</status></response>
+
+11) UNSUPPORTED REPRESENTATION — 406
+$ curl -i http://127.0.0.1:8000/registrations -H 'Accept: image/png'
+Expected: HTTP/1.1 406 Not Acceptable with Problem Details.
+
+12) RATE LIMIT — 429 + Retry-After
+Set RATE_LIMIT_PER_MINUTE=2, restart the app, then send three quick requests:
+$ curl -i http://127.0.0.1:8000/registrations
+$ curl -i http://127.0.0.1:8000/registrations
+$ curl -i http://127.0.0.1:8000/registrations
+Expected on the limited request: HTTP/1.1 429 Too Many Requests; Retry-After: 60; Problem Details body.
+
+13) EVENT SERVICE TIMEOUT — 503 + Retry-After
+If the configured Event Service is stopped/unreachable, POST with a new Idempotency-Key. After bounded dependency retries, expected response is 503 Service Unavailable; Retry-After: 2; Problem Details body. No registration is created.
+
+14) A5 REGRESSION CHECKS
+$ pytest -q
+Expected: all tests pass, including idempotency replay, ETag/If-Match concurrency guard, conditional GET, authorization, and validation/error-format checks.
