@@ -1,24 +1,25 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { USERS } from '../../data/users'
 import Card from '../../components/common/Card'
 import Input from '../../components/common/Input'
 import Button from '../../components/common/Button'
 import Badge from '../../components/common/Badge'
 import { Mail, Lock, ArrowLeft, ShieldCheck, AlertCircle } from 'lucide-react'
+import { useAuth } from '../../context/useAuth'
 
-// Mock demo credentials for the admin user
 const ADMIN_DEMO_EMAIL = 'admin@iiitvadodara.ac.in'
 const ADMIN_DEMO_PASSWORD = 'admin123'
 
 export default function AdminLogin() {
   const navigate = useNavigate()
+  const { login, logout } = useAuth()
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
@@ -29,21 +30,32 @@ export default function AdminLogin() {
 
     setLoading(true)
 
-    // Simulate brief auth check
-    setTimeout(() => {
-      const adminUser = USERS.find((u) => u.role === 'admin')
-      const emailMatch = email.trim().toLowerCase() === (adminUser?.email || ADMIN_DEMO_EMAIL).toLowerCase()
-      const passwordMatch = password === ADMIN_DEMO_PASSWORD
-
-      if (emailMatch && passwordMatch) {
-        navigate('/admin/dashboard')
-      } else {
-        setError(
-          `Invalid credentials. Use demo credentials: ${ADMIN_DEMO_EMAIL} / ${ADMIN_DEMO_PASSWORD}`
-        )
-        setLoading(false)
+    try {
+      const loggedUser = await login(email, password)
+      if (loggedUser.role !== 'admin') {
+        logout()
+        setError('Access denied. This account does not have administrator privileges.')
+        return
       }
-    }, 300)
+      navigate('/admin/dashboard')
+    } catch (err) {
+      const serverMsg =
+        err.response?.data?.detail ||
+        (Array.isArray(err.response?.data?.detail)
+          ? err.response.data.detail[0]?.msg
+          : null) ||
+        err.message ||
+        'Failed to sign in. Please verify your admin credentials.'
+      setError(serverMsg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fillDemoCredentials = () => {
+    setEmail(ADMIN_DEMO_EMAIL)
+    setPassword(ADMIN_DEMO_PASSWORD)
+    setError('')
   }
 
   return (
@@ -68,7 +80,7 @@ export default function AdminLogin() {
               Admin
             </Badge>
           </div>
-          <p className="text-xs text-[#9890a8]">campusEventHUB</p>
+          <p className="text-xs text-[#9890a8]">campusEventHUB • IIIT Vadodara</p>
         </div>
 
         {/* Error message */}
@@ -85,7 +97,7 @@ export default function AdminLogin() {
             id="admin-email"
             label="Admin Email"
             type="email"
-            placeholder="admin@iiitvadodara.ac.in"
+            placeholder={ADMIN_DEMO_EMAIL}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             icon={Mail}
@@ -122,9 +134,13 @@ export default function AdminLogin() {
         <div className="mt-6 pt-5 border-t border-[#cfc7df]">
           <p className="text-[11px] text-[#9890a8] text-center leading-relaxed">
             Demo credentials:{' '}
-            <span className="font-semibold text-[#6b637d]">{ADMIN_DEMO_EMAIL}</span>
-            {' / '}
-            <span className="font-semibold text-[#6b637d]">{ADMIN_DEMO_PASSWORD}</span>
+            <button
+              type="button"
+              onClick={fillDemoCredentials}
+              className="font-semibold text-[#6b637d] hover:text-[#2b2438] underline transition-colors cursor-pointer"
+            >
+              {ADMIN_DEMO_EMAIL} / {ADMIN_DEMO_PASSWORD}
+            </button>
           </p>
         </div>
       </Card>

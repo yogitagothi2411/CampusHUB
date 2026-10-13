@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import Badge from '../components/common/Badge'
+import { useAuth } from '../context/useAuth'
 import {
   CalendarDays,
   LayoutDashboard,
@@ -11,14 +12,17 @@ import {
   Menu,
   X,
   UserCircle2,
+  Megaphone,
 } from 'lucide-react'
+import NotificationBell from '../components/common/NotificationBell'
 
 const navLinks = [
-  { name: 'Dashboard',    to: '/organizer/dashboard',     icon: LayoutDashboard, end: true },
-  { name: 'My Events',    to: '/organizer/events',        icon: ListChecks,      end: true },
-  { name: 'Create Event', to: '/organizer/events/create', icon: PlusCircle,      end: true },
-  { name: 'Registrations',to: '/organizer/registrations', icon: Users,           end: false },
-  { name: 'Profile',      to: '/organizer/profile',       icon: UserCircle2,     end: true },
+  { name: 'Dashboard',     to: '/organizer/dashboard',     icon: LayoutDashboard, end: true },
+  { name: 'My Events',     to: '/organizer/events',        icon: ListChecks,      end: true },
+  { name: 'Create Event',  to: '/organizer/events/create', icon: PlusCircle,      end: true },
+  { name: 'Registrations', to: '/organizer/registrations', icon: Users,           end: false },
+  { name: 'Announcements', to: '/organizer/announcements', icon: Megaphone,       end: true },
+  { name: 'Profile',       to: '/organizer/profile',       icon: UserCircle2,     end: true },
 ]
 
 function NavItems({ onNavigate }) {
@@ -49,10 +53,15 @@ function NavItems({ onNavigate }) {
 export default function OrganizerLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
 
   const handleLogout = () => {
+    logout()
     navigate('/')
   }
+
+  const displayName = user?.name || 'Organizer'
+  const initial = displayName[0]?.toUpperCase() || 'O'
 
   return (
     /* Full viewport, no page-level scroll — only the main content scrolls */
@@ -62,7 +71,7 @@ export default function OrganizerLayout() {
       <aside className="hidden lg:flex flex-col w-60 shrink-0 h-full bg-[#e2d8e8] border-r border-[#c8bcd2] overflow-hidden">
 
         {/* Brand */}
-        <div className="px-5 py-5 border-b border-[#c8bcd2] shrink-0">
+        <div className="px-5 py-4 border-b border-[#c8bcd2] shrink-0 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#f0c8d4] flex items-center justify-center shrink-0">
               <CalendarDays className="w-4 h-4 text-[#7a2840]" />
@@ -72,16 +81,17 @@ export default function OrganizerLayout() {
               <p className="text-[10px] text-[#7a7088]">Organizer Portal</p>
             </div>
           </div>
+          <NotificationBell />
         </div>
 
         {/* Organizer identity */}
         <div className="px-5 py-4 border-b border-[#c8bcd2] shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-[#f5d4c0] flex items-center justify-center text-sm font-bold text-[#5c3520] shrink-0">
-              O
+              {initial}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold text-[#1e1730] truncate">Organizer</p>
+              <p className="text-xs font-bold text-[#1e1730] truncate">{displayName}</p>
               <Badge variant="blush" size="sm">Event Manager</Badge>
             </div>
           </div>
@@ -164,7 +174,10 @@ export default function OrganizerLayout() {
             <CalendarDays className="w-4 h-4 text-[#7a2840]" />
             <span className="text-sm font-bold text-[#1e1730]">campusEventHUB</span>
           </div>
-          <Badge variant="blush" size="sm">Organizer</Badge>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <Badge variant="blush" size="sm">Organizer</Badge>
+          </div>
         </header>
 
         {/* Scrollable page content */}

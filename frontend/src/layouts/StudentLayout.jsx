@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import Badge from '../components/common/Badge'
+import { useAuth } from '../context/useAuth'
 import {
   Sparkles,
   LayoutDashboard,
@@ -12,15 +13,18 @@ import {
   LogOut,
   Menu,
   X,
+  Megaphone,
 } from 'lucide-react'
+import NotificationBell from '../components/common/NotificationBell'
 
 const navLinks = [
-  { name: 'Dashboard',  to: '/student/dashboard',    icon: LayoutDashboard, end: true },
-  { name: 'Events',     to: '/student/events',        icon: CalendarDays,    end: false },
-  { name: 'Clubs',      to: '/student/clubs',         icon: Users,           end: false },
-  { name: 'Categories', to: '/student/categories',    icon: Grid,            end: true },
-  { name: 'Past Events',to: '/student/past-events',   icon: History,         end: true },
-  { name: 'Profile',    to: '/student/profile',       icon: User,            end: true },
+  { name: 'Dashboard',     to: '/student/dashboard',    icon: LayoutDashboard, end: true },
+  { name: 'Events',        to: '/student/events',        icon: CalendarDays,    end: false },
+  { name: 'Announcements', to: '/student/announcements', icon: Megaphone,       end: true },
+  { name: 'Clubs',         to: '/student/clubs',         icon: Users,           end: false },
+  { name: 'Categories',    to: '/student/categories',    icon: Grid,            end: true },
+  { name: 'Past Events',   to: '/student/past-events',   icon: History,         end: true },
+  { name: 'Profile',       to: '/student/profile',       icon: User,            end: true },
 ]
 
 function NavItems({ onNavigate }) {
@@ -51,10 +55,14 @@ function NavItems({ onNavigate }) {
 export default function StudentLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
 
   const handleLogout = () => {
+    logout()
     navigate('/')
   }
+
+  const displayName = user?.name || 'Aryan Sharma'
 
   return (
     /* Full viewport — sidebar is fixed, only main area scrolls */
@@ -64,7 +72,7 @@ export default function StudentLayout() {
       <aside className="hidden lg:flex flex-col w-60 shrink-0 h-full bg-[#ddd6ec] border-r border-[#c8c0d8] overflow-hidden">
 
         {/* Brand */}
-        <div className="px-5 py-5 border-b border-[#c8c0d8] shrink-0">
+        <div className="px-5 py-4 border-b border-[#c8c0d8] shrink-0 flex items-center justify-between">
           <Link to="/student/dashboard" className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#d9d2f0] flex items-center justify-center shrink-0 text-[#5a4d88]">
               <Sparkles className="w-4 h-4" />
@@ -74,6 +82,7 @@ export default function StudentLayout() {
               <p className="text-[10px] text-[#7a7088]">IIIT Vadodara</p>
             </div>
           </Link>
+          <NotificationBell />
         </div>
 
         {/* Student identity */}
@@ -82,13 +91,13 @@ export default function StudentLayout() {
             <div className="w-9 h-9 rounded-full bg-[#d9d2f0] flex items-center justify-center text-sm font-bold text-[#3e3568] shrink-0 overflow-hidden">
               <img
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80"
-                alt="Aryan Sharma"
+                alt={displayName}
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold text-[#1e1730] truncate group-hover:text-[#5a4d88] transition-colors">
-                Aryan Sharma
+                {displayName}
               </p>
               <Badge variant="lavender" size="sm">
                 Student
@@ -156,12 +165,12 @@ export default function StudentLayout() {
             <div className="w-8 h-8 rounded-full bg-[#d9d2f0] flex items-center justify-center text-xs font-bold text-[#3e3568] shrink-0 overflow-hidden">
               <img
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80"
-                alt="Aryan Sharma"
+                alt={displayName}
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold text-[#1e1730] truncate">Aryan Sharma</p>
+              <p className="text-xs font-bold text-[#1e1730] truncate">{displayName}</p>
               <Badge variant="lavender" size="sm">
                 Student
               </Badge>
@@ -204,15 +213,18 @@ export default function StudentLayout() {
               <span className="font-bold text-sm text-[#1e1730]">campusEventHUB</span>
             </div>
           </div>
-          <Link to="/student/profile">
-            <div className="w-7 h-7 rounded-full overflow-hidden bg-[#d9d2f0]">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80"
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </Link>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <Link to="/student/profile">
+              <div className="w-7 h-7 rounded-full overflow-hidden bg-[#d9d2f0]">
+                <img
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80"
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </Link>
+          </div>
         </header>
 
         {/* Scrollable content */}

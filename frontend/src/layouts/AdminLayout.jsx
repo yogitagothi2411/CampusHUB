@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { USERS } from '../data/users'
 import Badge from '../components/common/Badge'
+import { useAuth } from '../context/useAuth'
 import {
   CalendarDays,
   LayoutDashboard,
@@ -16,17 +17,20 @@ import {
   Menu,
   X,
   ShieldCheck,
+  Megaphone,
 } from 'lucide-react'
+import NotificationBell from '../components/common/NotificationBell'
 
 const navLinks = [
-  { name: 'Dashboard',  to: '/admin/dashboard',  icon: LayoutDashboard, end: true },
-  { name: 'Events',     to: '/admin/events',      icon: Calendar,        end: true },
-  { name: 'Students',   to: '/admin/students',    icon: GraduationCap,   end: true },
-  { name: 'Organizers', to: '/admin/organizers',  icon: Users,           end: true },
-  { name: 'Clubs',      to: '/admin/clubs',       icon: Building2,       end: true },
-  { name: 'Categories', to: '/admin/categories',  icon: Tag,             end: true },
-  { name: 'Reports',    to: '/admin/reports',     icon: BarChart3,       end: true },
-  { name: 'Profile',    to: '/admin/profile',     icon: UserCircle2,     end: true },
+  { name: 'Dashboard',     to: '/admin/dashboard',     icon: LayoutDashboard, end: true },
+  { name: 'Events',        to: '/admin/events',        icon: Calendar,        end: true },
+  { name: 'Announcements', to: '/admin/announcements', icon: Megaphone,       end: true },
+  { name: 'Students',      to: '/admin/students',      icon: GraduationCap,   end: true },
+  { name: 'Organizers',    to: '/admin/organizers',    icon: Users,           end: true },
+  { name: 'Clubs',         to: '/admin/clubs',         icon: Building2,       end: true },
+  { name: 'Categories',    to: '/admin/categories',    icon: Tag,             end: true },
+  { name: 'Reports',       to: '/admin/reports',       icon: BarChart3,       end: true },
+  { name: 'Profile',       to: '/admin/profile',       icon: UserCircle2,     end: true },
 ]
 
 const adminUser = USERS.find((u) => u.role === 'admin')
@@ -59,19 +63,20 @@ function NavItems({ onNavigate }) {
 export default function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
 
   const handleLogout = () => {
+    logout()
     navigate('/')
   }
 
-  const initials = adminUser?.name
-    ? adminUser.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-    : 'A'
+  const displayName = user?.name || adminUser?.name || 'Administrator'
+  const initials = displayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || 'A'
 
   return (
     /* Outer shell: full viewport height, no overflow — only inner panels scroll */
@@ -81,7 +86,7 @@ export default function AdminLayout() {
       <aside className="hidden lg:flex flex-col w-60 shrink-0 h-full bg-[#ddd7ea] border-r border-[#c4bacf] overflow-hidden">
 
         {/* Brand */}
-        <div className="px-5 py-5 border-b border-[#c4bacf] shrink-0">
+        <div className="px-5 py-4 border-b border-[#c4bacf] shrink-0 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#c8bdd6] flex items-center justify-center shrink-0">
               <CalendarDays className="w-4 h-4 text-[#3a2d4b]" />
@@ -91,6 +96,7 @@ export default function AdminLayout() {
               <p className="text-[10px] text-[#7a7088]">Admin Console</p>
             </div>
           </div>
+          <NotificationBell />
         </div>
 
         {/* Admin identity */}
@@ -100,7 +106,7 @@ export default function AdminLayout() {
               {adminUser?.avatar ? (
                 <img
                   src={adminUser.avatar}
-                  alt={adminUser.name}
+                  alt={displayName}
                   className="w-full h-full rounded-full object-cover"
                   onError={(e) => {
                     e.target.style.display = 'none'
@@ -112,7 +118,7 @@ export default function AdminLayout() {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold text-[#1e1730] truncate">
-                {adminUser?.name || 'Administrator'}
+                {displayName}
               </p>
               <Badge variant="mauve" size="sm" icon={ShieldCheck}>
                 Admin
@@ -214,7 +220,10 @@ export default function AdminLayout() {
             <CalendarDays className="w-4 h-4 text-[#3a2d4b]" />
             <span className="text-sm font-bold text-[#1e1730]">campusEventHUB</span>
           </div>
-          <Badge variant="mauve" size="sm">Admin</Badge>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <Badge variant="mauve" size="sm">Admin</Badge>
+          </div>
         </header>
 
         {/* Scrollable page content */}
