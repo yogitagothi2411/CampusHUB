@@ -38,6 +38,8 @@ import AdminCategories from '../pages/admin/AdminCategories'
 import AdminReports from '../pages/admin/AdminReports'
 import AdminProfile from '../pages/admin/AdminProfile'
 
+import Announcements from '../pages/common/Announcements'
+
 import Card from '../components/common/Card'
 import Button from '../components/common/Button'
 import { Sparkles, ArrowLeft } from 'lucide-react'
