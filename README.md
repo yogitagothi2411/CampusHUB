@@ -1,8 +1,13 @@
 # campusEventHUB
 
-A modern full-stack campus event management and activity discovery platform tailored for IIIT Vadodara.
+A modern  campus event management and activity discovery platform tailored for IIIT Vadodara.
 
 ---
+##  LINKS-
+
+   Google drive - https://drive.google.com/drive/folders/1-ekxGUW_AxeZAvrrflxqz0vCRvsnkP4u?usp=drive_link
+   Github repo - https://github.com/yogitagothi2411/CampusHUB
+
 
 ## Architecture Overview
 
