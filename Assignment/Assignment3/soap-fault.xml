@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope
+ xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+ xmlns:sms="https://contracts.campushub.example/sms/types">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <soapenv:Fault>
+      <faultcode>soapenv:Server</faultcode>
+      <faultstring>SMS provider temporarily unavailable</faultstring>
+      <detail>
+        <sms:SmsPartnerFault>
+          <sms:code>PROVIDER_UNAVAILABLE</sms:code>
+          <sms:message>Message submission could not be accepted at this time.</sms:message>
+          <sms:messageReference>CH-SMS-2026-000184</sms:messageReference>
+          <sms:retryable>true</sms:retryable>
+        </sms:SmsPartnerFault>
+      </detail>
+    </soapenv:Fault>
+  </soapenv:Body>
+</soapenv:Envelope>
