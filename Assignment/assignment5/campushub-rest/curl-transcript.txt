@@ -1,0 +1,3 @@
+PLACEHOLDER — CAPTURE REAL OUTPUT BEFORE SUBMISSION
+
+Run the curl.exe -v commands in CURL-TESTS.md against both local services. Paste complete actual output here, including request lines, response status lines, headers and bodies. Do not submit this placeholder as test evidence.

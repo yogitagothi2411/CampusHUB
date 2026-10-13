@@ -1,0 +1,170 @@
+openapi: 3.0.3
+info:
+  title: campusEventHUB Registration Service
+  version: 1.1.0
+  description: Assignment 5 API for campus event registrations.
+servers:
+  - url: http://127.0.0.1:8000
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Running
+          content:
+            application/json:
+              schema: {type: object, properties: {status: {type: string}, service: {type: string}}}
+  /registrations:
+    options:
+      summary: List supported methods
+      responses:
+        '204':
+          description: Supported methods
+          headers:
+            Allow: {description: Allowed methods, schema: {type: string, example: 'GET, POST, OPTIONS'}}
+    get:
+      summary: List and search registrations
+      parameters:
+        - {in: query, name: eventId, required: false, schema: {type: string}}
+        - {in: query, name: sort, required: false, schema: {type: string, enum: [id, eventId, studentReference, status], default: id}}
+        - {in: query, name: order, required: false, schema: {type: string, enum: [asc, desc], default: asc}}
+        - {in: query, name: page, required: false, schema: {type: integer, minimum: 1, default: 1}}
+        - {in: query, name: limit, required: false, schema: {type: integer, minimum: 1, maximum: 100, default: 10}}
+      responses:
+        '200':
+          description: Matching registrations
+          headers:
+            X-RateLimit-Limit: {schema: {type: integer}}
+            X-RateLimit-Remaining: {schema: {type: integer}}
+            Access-Control-Allow-Origin: {schema: {type: string}}
+            X-Content-Type-Options: {schema: {type: string, example: nosniff}}
+            Strict-Transport-Security: {schema: {type: string}}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RegistrationList'}
+        '406': {description: Unsupported Accept type}
+        '429': {description: Per-client rate limit exceeded}
+    post:
+      summary: Create registration
+      description: Idempotency-Key is mandatory. The referenced event is verified using the existing CampusHUB Event Service.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, minLength: 1}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RegistrationCreate'}
+      responses:
+        '201':
+          description: Registration created
+          headers:
+            Location: {description: URI of created registration, schema: {type: string}}
+            ETag: {description: Entity tag, schema: {type: string}}
+            Cache-Control: {schema: {type: string}}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Registration'}
+        '400': {description: Missing Idempotency-Key or malformed request}
+        '409': {description: Key reused with a different body}
+        '422': {description: Invalid event or body validation failure}
+        '503': {description: Event Service unavailable after retries}
+        '406': {description: Unsupported Accept type}
+        '429': {description: Per-client rate limit exceeded}
+  /registrations/{registration_id}:
+    parameters:
+      - {in: path, name: registration_id, required: true, schema: {type: string}}
+    get:
+      summary: Read one registration with conditional caching
+      parameters:
+        - {in: header, name: If-None-Match, required: false, schema: {type: string}}
+      responses:
+        '200':
+          description: Registration representation
+          headers:
+            ETag: {schema: {type: string}}
+            Cache-Control: {schema: {type: string}}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Registration'}
+        '304': {description: Not modified; no response body}
+        '404': {description: Registration not found}
+    put:
+      summary: Replace editable registration fields conditionally
+      security: [{BearerAuth: []}]
+      parameters:
+        - {in: header, name: If-Match, required: true, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RegistrationUpdate'}
+      responses:
+        '200': {description: Updated, new ETag returned}
+        '401': {description: Missing or invalid Bearer token}
+        '404': {description: Registration not found}
+        '412': {description: If-Match does not match current ETag}
+        '428': {description: If-Match header required}
+    patch:
+      summary: Modify editable registration fields conditionally
+      security: [{BearerAuth: []}]
+      parameters:
+        - {in: header, name: If-Match, required: true, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RegistrationUpdate'}
+      responses:
+        '200': {description: Updated, new ETag returned}
+        '401': {description: Missing or invalid Bearer token}
+        '404': {description: Registration not found}
+        '412': {description: If-Match does not match current ETag}
+        '428': {description: If-Match header required}
+    delete:
+      summary: Delete registration
+      security: [{BearerAuth: []}]
+      parameters:
+        - {in: header, name: X-HTTP-Method-Override, required: false, schema: {type: string, example: DELETE}}
+      responses:
+        '204': {description: Deleted; no response body}
+        '401': {description: Missing or invalid Bearer token}
+        '404': {description: Registration not found}
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    RegistrationCreate:
+      type: object
+      additionalProperties: false
+      required: [eventId, studentReference]
+      properties:
+        eventId: {type: string, minLength: 1, maxLength: 100, example: '1'}
+        studentReference: {type: string, minLength: 1, maxLength: 100, example: STU-DEMO-001}
+    RegistrationUpdate:
+      type: object
+      additionalProperties: false
+      required: [studentReference]
+      properties:
+        studentReference: {type: string, minLength: 1, maxLength: 100}
+    Registration:
+      type: object
+      required: [id, eventId, studentReference, status]
+      properties:
+        id: {type: string}
+        eventId: {type: string}
+        studentReference: {type: string}
+        status: {type: string, enum: [CONFIRMED]}
+    RegistrationList:
+      type: object
+      required: [items, count, page, limit]
+      properties:
+        items: {type: array, items: {$ref: '#/components/schemas/Registration'}}
+        count: {type: integer}
+        page: {type: integer}
+        limit: {type: integer}
