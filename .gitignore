@@ -33,6 +33,12 @@ htmlcov/
 *.db
 *.sqlite
 *.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+
+# Backend/Server secrets
+Server/.env
+Server/**/.env
 
 # Python dotenv / secrets
 backend/.env
