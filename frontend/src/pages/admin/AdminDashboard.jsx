@@ -1,10 +1,6 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { adminService } from '../../services/api'
 import { Link } from 'react-router-dom'
-import { EVENTS } from '../../data/events'
-import { USERS } from '../../data/users'
-import { CLUBS } from '../../data/clubs'
-import { MOCK_REGISTRATIONS } from '../../data/registrations'
-import { CATEGORIES_CONFIG } from '../../data/categories'
 import Badge from '../../components/common/Badge'
 import {
   LayoutDashboard,
@@ -92,63 +88,49 @@ function SectionHeader({ title, to }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
-  // ── Derived statistics ────────────────────────────────────────────────────
-  const stats = useMemo(() => {
-    const isCompleted = (e) =>
-      e.isHistorical === true || e.timing === 'completed' || e.status === 'Completed'
+  const [source, setSource] = useState({ events: [], students: [], organizers: [], clubs: [], categories: [], dashboardStats: null })
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
-    const totalEvents = EVENTS.length
-    const upcomingEvents = EVENTS.filter((e) => !isCompleted(e))
-    const completedEvents = EVENTS.filter(isCompleted)
-
-    const totalStudents = USERS.filter((u) => u.role === 'student').length
-    const totalOrganizers = USERS.filter((u) => u.role === 'organizer').length
-    const totalClubs = CLUBS.length
-
-    // Total registrations across all events (registeredCount is the authoritative field)
-    const totalRegistrations = EVENTS.reduce((acc, e) => acc + (e.registeredCount || 0), 0)
-
-    // Category breakdown (all events including historical)
-    const categoryMap = {}
-    EVENTS.forEach((e) => {
-      if (e.category) {
-        categoryMap[e.category] = (categoryMap[e.category] || 0) + 1
-      }
-    })
-    const categoryBreakdown = Object.entries(categoryMap)
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, count]) => ({ name, count }))
-
-    // Top events by registeredCount (upcoming only)
-    const topEvents = [...upcomingEvents]
-      .sort((a, b) => (b.registeredCount || 0) - (a.registeredCount || 0))
-      .slice(0, 5)
-
-    // Explicit registration entries (from MOCK_REGISTRATIONS)
-    const explicitRegTotal = Object.values(MOCK_REGISTRATIONS).reduce(
-      (acc, arr) => acc + arr.length,
-      0
-    )
-
-    return {
-      totalEvents,
-      upcomingCount: upcomingEvents.length,
-      completedCount: completedEvents.length,
-      totalStudents,
-      totalOrganizers,
-      totalClubs,
-      totalRegistrations,
-      explicitRegTotal,
-      upcomingEvents,
-      completedEvents,
-      categoryBreakdown,
-      topEvents,
-    }
+  useEffect(() => {
+    let active = true
+    Promise.all([
+      adminService.getEvents(), adminService.getStudents(), adminService.getOrganizers(),
+      adminService.getClubs(), adminService.getCategories(), adminService.getDashboardStats(),
+    ]).then(([events, students, organizers, clubs, categories, dashboardStats]) => {
+      if (active) setSource({ events, students, organizers, clubs, categories, dashboardStats })
+    }).catch((error) => {
+      if (active) setLoadError(error.response?.data?.detail || error.message || 'Unable to load dashboard data')
+    }).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
   }, [])
+
+  const stats = useMemo(() => {
+    const events = source.events || []
+    const isCompleted = (event) => event.isHistorical || event.status === 'Completed'
+    const upcomingEvents = events.filter((event) => !isCompleted(event))
+    const completedEvents = events.filter(isCompleted)
+    const categoryMap = {}
+    events.forEach((event) => { if (event.category) categoryMap[event.category] = (categoryMap[event.category] || 0) + 1 })
+    const categoryBreakdown = Object.entries(categoryMap).sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count }))
+    return {
+      totalEvents: source.dashboardStats?.totalEvents ?? events.length,
+      upcomingCount: source.dashboardStats?.upcomingEvents ?? upcomingEvents.length,
+      completedCount: source.dashboardStats?.completedEvents ?? completedEvents.length,
+      totalStudents: source.dashboardStats?.totalStudents ?? source.students.length,
+      totalOrganizers: source.dashboardStats?.totalOrganizers ?? source.organizers.length,
+      totalClubs: source.dashboardStats?.totalClubs ?? source.clubs.filter((club) => String(club.status || 'Active').toLowerCase() === 'active').length,
+      totalRegistrations: source.dashboardStats?.totalRegistrations ?? events.reduce((sum, event) => sum + (event.registeredCount || 0), 0),
+      upcomingEvents, completedEvents, categoryBreakdown,
+      topEvents: [...upcomingEvents].sort((a, b) => (b.registeredCount || 0) - (a.registeredCount || 0)).slice(0, 5),
+    }
+  }, [source])
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
+      {loadError && <div className="rounded-xl border border-[#f0c5cf] bg-[#faeaee] p-3 text-sm text-[#a33d58]">{loadError}</div>}
+      {loading && <p className="text-xs text-[#7a7088]">Loading live platform statistics…</p>}
 
       {/* ── Page heading ──────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
@@ -161,6 +143,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {loading || loadError ? null : <>
       {/* ── Summary stat cards ────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         <StatCard
@@ -217,7 +200,7 @@ export default function AdminDashboard() {
         />
         <StatCard
           label="Categories"
-          value={CATEGORIES_CONFIG.length}
+          value={source.dashboardStats?.totalCategories ?? source.categories.length}
           icon={Tag}
           iconBg="bg-[#d5ccdf]"
           iconColor="text-[#5a4e6a]"
@@ -458,6 +441,8 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      </>}
 
     </div>
   )

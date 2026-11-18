@@ -1,231 +1,41 @@
-# campusEventHUB
+# CampusEventHUB — team integration repository
 
-A modern  campus event management and activity discovery platform tailored for IIIT Vadodara.
+Stack: React + Vite frontend, Node.js + Express microservices, SQLite (one database file per service). No Python/FastAPI, PostgreSQL or MongoDB in this selected configuration.
 
----
-##  LINKS-
+## Start after all four members commit/merge
+Requirements: Node.js 20+. From repository root:
 
-   Google drive - https://drive.google.com/drive/folders/1-ekxGUW_AxeZAvrrflxqz0vCRvsnkP4u?usp=drive_link
-   Github repo - https://github.com/yogitagothi2411/CampusHUB
-
-
-## Architecture Overview
-
-```
-campusEventHUB/
-├── frontend/          # React 19 + Vite + Tailwind CSS v4 + Axios
-│   ├── src/
-│   │   ├── components/ # Common UI & event components (Card, Button, EventCard, NotificationBell, etc.)
-│   │   ├── context/    # Session & Authentication context (AuthContext, useAuth)
-│   │   ├── layouts/    # Role layouts (StudentLayout, OrganizerLayout, AdminLayout)
-│   │   ├── pages/      # Student, Organizer, Admin, Auth & Announcements pages
-│   │   ├── services/   # Centralized Axios API client (api.js)
-│   │   └── data/       # IIIT Vadodara catalog data & mock registries
-│   ├── .env            # VITE_API_BASE_URL=http://127.0.0.1:8000
-│   └── .env.example
-├── backend/           # Python FastAPI + SQLAlchemy + SQLite + JWT Authentication
-│   ├── services/
-│   │   ├── auth/           # OAuth2 JWT login, registration, role checks, password hashing
-│   │   ├── event_services/ # Event CRUD, database models, CORS middleware, app entrypoint
-│   │   ├── clubs/          # Club management (models, schemas, router)
-│   │   ├── registrations/  # Event registrations (models, schemas, router)
-│   │   ├── notifications/  # In-app user notifications (models, schemas, router)
-│   │   └── announcements/  # College-wide announcements (models, schemas, router)
-│   ├── data/          # campus_events.db (SQLite database)
-│   └── tests/         # Pytest test suite (33 test cases)
-└── docs/              # Specifications, SRS & Phase implementation plans
-```
-
----
-
-## Quick Start & Running Locally
-
-### 1. Backend Terminal (FastAPI)
-
-```powershell
-cd C:\Users\hp\Desktop\campusEventHUB\backend
-.\.venv\Scripts\Activate.ps1
-python -m uvicorn services.event_services.main:app --reload --port 8000
-```
-
-- **Backend API**: `http://127.0.0.1:8000`
-- **Interactive Swagger Docs**: `http://127.0.0.1:8000/docs`
-- **Health Check**: `http://127.0.0.1:8000/health`
-
-### 2. Frontend Terminal (React + Vite)
-
-```powershell
-cd C:\Users\hp\Desktop\campusEventHUB\frontend
+```bash
 npm install
+copy backend\api-gateway\.env.example backend\api-gateway\.env
+copy backend\services\auth-service\.env.example backend\services\auth-service\.env
+copy backend\services\user-service\.env.example backend\services\user-service\.env
+copy backend\services\event-service\.env.example backend\services\event-service\.env
+copy backend\services\registration-service\.env.example backend\services\registration-service\.env
+copy backend\services\club-service\.env.example backend\services\club-service\.env
+copy backend\services\notification-service\.env.example backend\services\notification-service\.env
+copy backend\services\announcement-service\.env.example backend\services\announcement-service\.env
 npm run dev
 ```
 
-- **Application URL**: `http://localhost:5173` (or `http://127.0.0.1:5173`)
+Frontend in a second terminal: `cd frontend && npm install && npm run dev`. Frontend API base URL: `http://localhost:3000/api/v1`.
 
----
+## Ports
+Gateway 3000; Auth 3001; User 3002; Event 3003; Registration 3004; Club 3005; Notification 3006; Announcement 3007.
 
-## Environment Variables
+## Demo credentials
+`admin@iiitvadodara.ac.in / admin123`; `organizer@iiitvadodara.ac.in / organizer123`; `student@iiitvadodara.ac.in / student123`. Change all demo passwords and JWT_SECRET before deployment.
 
-### Frontend (`frontend/.env` and `frontend/.env.example`)
+## Important integration contract
+- All member branches must use the same `JWT_SECRET` and role strings: `student`, `organizer`, `admin`.
+- Every service has `GET /health`.
+- Gateway public base is `/api/v1`; services own the paths documented in `docs/API-CONTRACT.md`.
+- JSON success: `{ success: true, message?, data }`; errors: `{ success: false, error: { code, message, details }, request_id? }`.
+- Services own their SQLite file. A service must call another service over HTTP rather than opening its DB.
+- Keep service folders and root workspace names unchanged when merging PRs.
 
-```ini
-# FastAPI Backend API Base URL
-VITE_API_BASE_URL=http://127.0.0.1:8000
-```
+## Git workflow
+Each member works on their feature branch and opens a PR. Merge in this order: Member 1 foundation/gateway, Member 2 event+club, Member 3 registration, Member 4 communication. After all merges, pull `main`, run the root install and startup commands above, then test through the gateway.
 
-### Backend (`backend/.env` optional)
-
-```ini
-# Configurable CORS origins (comma-separated, default: localhost:5173, 127.0.0.1:5173)
-CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
-DATABASE_URL=sqlite:///./data/campus_events.db
-```
-
----
-
-## Authentication & Demo Credentials
-
-Users can register new accounts via the public registration tab on the login screen, or log in using pre-seeded demo accounts:
-
-| Role | Email | Password | Allowed Capabilities |
-| :--- | :--- | :--- | :--- |
-| **Admin** | `admin@iiitvadodara.ac.in` | `admin123` | Full event CRUD, modify/delete any event, manage users, clubs & announcements |
-| **Organizer** | `organizer@iiitvadodara.ac.in` | `organizer123` | Create events, edit/manage own events, view registrations, receive notifications |
-| **Student** | `student@iiitvadodara.ac.in` | `student123` | Discover events, search/filter, register for events, receive notifications |
-
-> **Security Note:** Public registration allows only `student` and `organizer` accounts. Attempts to register with `role: "admin"` are rejected by the backend with HTTP `400 Bad Request`.
-
----
-
-## API Reference
-
-### Authentication (`/auth`)
-
-| Method | Endpoint | Auth | Description |
-| :----- | :------- | :--- | :---------- |
-| `POST` | `/auth/register` | Public | Register a new user (`student` or `organizer` only) |
-| `POST` | `/auth/login` | Public | Login and receive JWT access token |
-| `GET`  | `/auth/me` | Bearer | Get current authenticated user profile |
-
-### Events (`/events`)
-
-| Method | Endpoint | Auth | Description |
-| :----- | :------- | :--- | :---------- |
-| `GET`    | `/events` | Public | List all events (filter by category, timing, search) |
-| `GET`    | `/events/{id}` | Public | Get a single event by ID |
-| `POST`   | `/events` | Organizer / Admin | Create a new event |
-| `PUT`    | `/events/{id}` | Owner / Admin | Full event update |
-| `PATCH`  | `/events/{id}` | Owner / Admin | Partial event update |
-| `DELETE` | `/events/{id}` | Owner / Admin | Delete an event (notifies registered students) |
-
-### Clubs (`/clubs`)
-
-| Method | Endpoint | Auth | Description |
-| :----- | :------- | :--- | :---------- |
-| `GET`    | `/clubs` | Public | List all IIIT Vadodara clubs |
-| `GET`    | `/clubs/{id}` | Public | Get a club by ID |
-| `POST`   | `/clubs` | Admin | Create a new club |
-| `PUT`    | `/clubs/{id}` | Admin | Update a club |
-| `DELETE` | `/clubs/{id}` | Admin | Delete a club |
-
-Clubs are automatically seeded on startup with all 14 official IIIT Vadodara clubs.
-
-### Event Registrations (`/events/{id}/registrations`)
-
-| Method | Endpoint | Auth | Description |
-| :----- | :------- | :--- | :---------- |
-| `POST`   | `/events/{id}/registrations` | Student | Register for an event |
-| `DELETE` | `/events/{id}/registrations` | Student | Cancel own registration |
-| `GET`    | `/events/{id}/registrations` | Owner / Admin | List all attendees for an event |
-| `GET`    | `/events/{id}/registrations/my` | Student | Check own registration status |
-
-Registration enforces capacity limits and prevents duplicate registrations with HTTP `409 Conflict`.
-
-### Notifications (`/notifications`)
-
-| Method | Endpoint | Auth | Description |
-| :----- | :------- | :--- | :---------- |
-| `GET`  | `/notifications` | Bearer | List own notifications |
-| `GET`  | `/notifications/unread-count` | Bearer | Get unread notification count |
-| `POST` | `/notifications/{id}/read` | Bearer | Mark a notification as read |
-| `POST` | `/notifications/read-all` | Bearer | Mark all notifications as read |
-
-Notifications are automatically created when:
-- A student registers for or cancels an event.
-- An organizer's event is updated, cancelled, or deleted by an admin.
-
-### Announcements (`/announcements`)
-
-| Method | Endpoint | Auth | Description |
-| :----- | :------- | :--- | :---------- |
-| `GET`  | `/announcements` | Optional Auth | List published announcements (paginated) |
-| `GET`  | `/announcements/{id}` | Optional Auth | Get a single announcement |
-| `POST` | `/announcements` | Admin | Create a new announcement |
-| `PUT`  | `/announcements/{id}` | Admin | Update an announcement |
-| `DELETE` | `/announcements/{id}` | Admin | Delete an announcement |
-
----
-
-## Database Schema
-
-```
-users               → id, name, email, hashed_password, role, created_at
-events              → id, title, description, category, date_time, location,
-                      capacity, organizer_id, created_at, updated_at
-clubs               → id, name, description, category, founded_year,
-                      member_count, contact_email, logo_url, is_active
-event_registrations → id, event_id, student_id, status, registered_at, cancelled_at
-notifications       → id, user_id, title, message, is_read, notif_type,
-                      related_event_id, created_at
-announcements       → id, title, content, author_id, is_published,
-                      priority, created_at, updated_at
-```
-
----
-
-## Testing & Quality Assurance
-
-### Run Backend Pytest Suite (33/33 Passing)
-
-```powershell
-cd C:\Users\hp\Desktop\campusEventHUB\backend
-.\.venv\Scripts\python.exe -m pytest -v
-```
-
-Tests cover:
-- CORS preflight and origin validation.
-- User registration (`student` and `organizer`).
-- Public admin role rejection (HTTP 400).
-- Password hashing using bcrypt.
-- JWT token issuing, expiry, and unauthorized access rejection.
-- Role-based route authorization.
-- Event CRUD with ownership enforcement.
-- Club listing (public) and admin CRUD.
-- Event registration with capacity enforcement and duplicate rejection.
-- Registration cancellation and attendee listing permissions.
-- Notification creation, unread count, and mark-as-read.
-- Announcement publishing and management.
-
-All tests run against an **isolated in-memory SQLite database** — the development database is never modified.
-
-### Run Frontend Lint & Build (0 Errors)
-
-```powershell
-cd C:\Users\hp\Desktop\campusEventHUB\frontend
-npm run lint
-npm run build
-```
-
-Production bundle: **713 kB JS** / **59 kB CSS** (gzip: 170 kB / 11 kB).
-
----
-
-## Feature Summary by Phase
-
-| Phase | Feature | Status |
-| :---- | :------ | :----- |
-| 1–2 | React UI, routing, role layouts, IIIT Vadodara data | ✅ Complete |
-| 3 | FastAPI backend, auth, JWT, role-based event CRUD | ✅ Complete |
-| 4 | Frontend–backend integration, live API, session persistence | ✅ Complete |
-| 5 | Persistent clubs (SQLite), event registration with capacity enforcement | ✅ Complete |
-| 6 | In-app notifications, college announcements, notification bell UI | ✅ Complete |
+## Notes
+This is a team integration scaffold. Members should complete their assigned validation, pagination, ETag, cache, tests, OpenAPI/Swagger, GraphQL/SOAP and notification-event workflows as required by the course rubric. Do not claim those advanced evaluation items are complete until implemented and tested.

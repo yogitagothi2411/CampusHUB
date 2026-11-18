@@ -47,8 +47,8 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const login = useCallback(async (email, password) => {
-    const result = await authService.login(email, password)
+  const login = useCallback(async (email, password, expectedRole) => {
+    const result = await authService.login(email, password, expectedRole)
     setUser(result.user)
     setToken(result.token)
     return result.user
@@ -57,10 +57,16 @@ export function AuthProvider({ children }) {
   const register = useCallback(async ({ name, email, password, role }) => {
     const newUser = await authService.register({ name, email, password, role })
     // Automatically log in after registration
-    const result = await authService.login(email, password)
+    const result = await authService.login(email, password, role)
     setUser(result.user)
     setToken(result.token)
     return newUser
+  }, [])
+
+  const updateProfile = useCallback(async (updates) => {
+    const updatedUser = await authService.updateProfile(updates)
+    setUser(updatedUser)
+    return updatedUser
   }, [])
 
   const logout = useCallback(() => {
@@ -76,6 +82,7 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!token && !!user,
     login,
     register,
+    updateProfile,
     logout,
   }
 

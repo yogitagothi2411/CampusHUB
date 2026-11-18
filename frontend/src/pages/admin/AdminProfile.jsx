@@ -1,10 +1,11 @@
-import { USERS } from '../../data/users'
+import { useAuth } from '../../context/useAuth'
 import Badge from '../../components/common/Badge'
 import { UserCircle2, Mail, ShieldCheck } from 'lucide-react'
+import ProfileEditor from '../../components/common/ProfileEditor'
 
-const adminUser = USERS.find((u) => u.role === 'admin')
 
 export default function AdminProfile() {
+  const { user: adminUser } = useAuth()
   const initials = adminUser?.name
     ? adminUser.name
         .split(' ')
@@ -16,6 +17,7 @@ export default function AdminProfile() {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
+      <ProfileEditor />
       {/* Page heading */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-[#d5ccdf] flex items-center justify-center shrink-0">
@@ -92,12 +94,6 @@ export default function AdminProfile() {
         </div>
       </div>
 
-      {/* Phase note */}
-      <div className="bg-[#dcd6ea] border border-[#c4bacf] rounded-2xl p-5 text-center">
-        <p className="text-xs text-[#7a7088] font-semibold">
-          Profile editing will be implemented in a later phase.
-        </p>
-      </div>
     </div>
   )
 }

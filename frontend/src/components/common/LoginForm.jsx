@@ -67,7 +67,7 @@ export default function LoginForm({
           navigate(targetDashboard)
         }, 500)
       } else {
-        await login(email, password)
+        await login(email, password, role)
         navigate(targetDashboard)
       }
     } catch (err) {

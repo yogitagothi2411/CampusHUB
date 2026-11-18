@@ -43,6 +43,7 @@ import Announcements from '../pages/common/Announcements'
 import Card from '../components/common/Card'
 import Button from '../components/common/Button'
 import { Sparkles, ArrowLeft } from 'lucide-react'
+import { useAuth } from '../context/useAuth'
 
 function NotFound() {
   return (
@@ -67,6 +68,18 @@ function NotFound() {
   )
 }
 
+
+function RoleGate({ role, children }) {
+  const { user, loading } = useAuth()
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-sm text-[#5a5168]">Checking session…</div>
+  if (!user) return <Navigate to={`/${role}/login`} replace />
+  if (user.role !== role) {
+    const home = user.role === 'admin' ? '/admin/dashboard' : user.role === 'organizer' ? '/organizer/dashboard' : '/student/dashboard'
+    return <Navigate to={home} replace />
+  }
+  return children
+}
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -81,7 +94,7 @@ export default function AppRoutes() {
       <Route path="/auth/admin" element={<Navigate to="/admin/login" replace />} />
 
       {/* Student Portal routes */}
-      <Route path="/student" element={<StudentLayout />}>
+      <Route path="/student" element={<RoleGate role="student"><StudentLayout /></RoleGate>}>
         <Route index element={<Navigate to="/student/dashboard" replace />} />
         <Route path="home" element={<Navigate to="/student/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
@@ -92,10 +105,11 @@ export default function AppRoutes() {
         <Route path="categories" element={<Categories />} />
         <Route path="past-events" element={<PastEvents />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="announcements" element={<Announcements />} />
       </Route>
 
       {/* Organizer Portal routes */}
-      <Route path="/organizer" element={<OrganizerLayout />}>
+      <Route path="/organizer" element={<RoleGate role="organizer"><OrganizerLayout /></RoleGate>}>
         <Route index element={<Navigate to="/organizer/dashboard" replace />} />
         <Route path="dashboard" element={<OrganizerDashboard />} />
         <Route path="events" element={<OrganizerEvents />} />
@@ -105,10 +119,11 @@ export default function AppRoutes() {
         <Route path="events/:eventId/registrations" element={<EventRegistrations />} />
         <Route path="registrations" element={<Navigate to="/organizer/events" replace />} />
         <Route path="profile" element={<OrganizerProfile />} />
+        <Route path="announcements" element={<Announcements />} />
       </Route>
 
       {/* Admin Portal routes */}
-      <Route path="/admin" element={<AdminLayout />}>
+      <Route path="/admin" element={<RoleGate role="admin"><AdminLayout /></RoleGate>}>
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="events" element={<AdminEvents />} />
@@ -126,6 +141,7 @@ export default function AppRoutes() {
         <Route path="categories" element={<AdminCategories />} />
         <Route path="reports" element={<AdminReports />} />
         <Route path="profile" element={<AdminProfile />} />
+        <Route path="announcements" element={<Announcements />} />
       </Route>
 
       {/* Fallback */}

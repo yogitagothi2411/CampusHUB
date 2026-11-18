@@ -1,1 +1,0 @@
-# Club management package

@@ -96,7 +96,7 @@ export default function Announcements() {
       }
       setIsModalOpen(false)
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to save announcement.')
+      alert(err.response?.data?.error?.message || err.response?.data?.detail || err.message || 'Failed to save announcement.')
     } finally {
       setSubmitting(false)
     }
