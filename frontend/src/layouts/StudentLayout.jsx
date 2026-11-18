@@ -62,7 +62,7 @@ export default function StudentLayout() {
     navigate('/')
   }
 
-  const displayName = user?.name || 'Student'
+  const displayName = user?.name || 'Aryan Sharma'
 
   return (
     /* Full viewport — sidebar is fixed, only main area scrolls */

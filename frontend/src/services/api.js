@@ -209,36 +209,30 @@ export const authService = {
   /**
    * Log in via POST /auth/login (OAuth2 form-urlencoded: username + password)
    */
-  
-async login(email, password, expectedRole) {
-  const response = await apiClient.post('/auth/login', {
-    email: email.trim().toLowerCase(),
-    password,
-  })
+  async login(email, password) {
+    const params = new URLSearchParams()
+    params.append('username', email.trim().toLowerCase())
+    params.append('password', password)
 
-  const { access_token } = response.data.data || {}
+    const response = await apiClient.post('/auth/login', params, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    })
 
-  if (!access_token) {
-    throw new Error('No access token received from server')
-  }
+    const { access_token } = response.data
+    if (!access_token) {
+      throw new Error('No access token received from server')
+    }
 
-  localStorage.setItem('ceh_token', access_token)
+    localStorage.setItem('ceh_token', access_token)
 
-  // Fetch authenticated user profile
-  const profile = await this.getProfile(access_token)
+    // Fetch authenticated user profile
+    const profile = await this.getProfile(access_token)
+    localStorage.setItem('ceh_user', JSON.stringify(profile))
 
-  if (expectedRole && profile.role !== expectedRole) {
-    this.logout()
-    throw new Error(
-      `This account is registered as ${profile.role}. Please use the ${profile.role} login.`
-    )
-  }
-
-  localStorage.setItem('ceh_user', JSON.stringify(profile))
-
-  return { token: access_token, user: profile }
-},
-
+    return { token: access_token, user: profile }
+  },
 
   /**
    * Register a new user via POST /auth/register
@@ -263,47 +257,10 @@ async login(email, password, expectedRole) {
   /**
    * Get authenticated user profile via GET /auth/me
    */
-  
-
-async getProfile(token) {
-  const headers = token
-    ? { Authorization: `Bearer ${token}` }
-    : {}
-
-  const response = await apiClient.get('/auth/me', { headers })
-
-  const body = response.data
-
-  // Support the possible API response formats
-  const profile =
-    body?.data?.user ??
-    body?.data ??
-    body?.user ??
-    body
-
-  if (!profile || typeof profile !== 'object' || !profile.role) {
-    console.error('Unexpected profile response:', body)
-    throw new Error('User profile is missing or has an invalid response format.')
-  }
-
-  return profile
-},
-
-
-
-  async updateProfile(updates) {
-    const current = this.getCurrentUser()
-    if (!current?.id) throw new Error('You must be logged in to edit your profile.')
-    const response = await apiClient.patch(`/users/${current.id}`, updates)
-    const saved = response.data?.data ?? response.data
-    const updated = {
-      ...current,
-      ...saved,
-      studentId: saved.student_id ?? saved.studentId ?? current.studentId,
-      clubName: saved.club_name ?? saved.clubName ?? current.clubName,
-    }
-    localStorage.setItem('ceh_user', JSON.stringify(updated))
-    return updated
+  async getProfile(token) {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
+    const response = await apiClient.get('/auth/me', { headers })
+    return response.data
   },
 
   /**
@@ -346,17 +303,8 @@ export const eventService = {
    */
   async getEvents({ category, period, clubId, status, search, includeCompleted = false } = {}) {
     const response = await apiClient.get('/events')
-
-// Backend response: { success: true, data: [...] }
-const rawEvents = response.data?.data ?? response.data
-
-if (!Array.isArray(rawEvents)) {
-  throw new Error('Event API returned an invalid response')
-}
-
-const events = rawEvents
-  .map(normalizeBackendEvent)
-  .filter(Boolean)
+    const rawEvents = Array.isArray(response.data) ? response.data : []
+    const events = rawEvents.map(normalizeBackendEvent)
 
     let filtered = events.filter((event) => {
       const isPastOrCompleted =
@@ -459,19 +407,7 @@ export const organizerService = {
    * Fetch organizer portal events
    */
   async getEvents() {
-    const currentUser = authService.getCurrentUser()
-    const allEvents = await eventService.getEvents({ includeCompleted: true })
-    if (currentUser?.role === 'admin') {
-  return allEvents
-}
-
-if (currentUser?.role === 'organizer') {
-  return allEvents.filter(
-    (event) => String(event.owner_id) === String(currentUser.id)
-  )
-}
-
-return []
+    return eventService.getEvents({ includeCompleted: true })
   },
 
   /**
@@ -547,25 +483,6 @@ return []
    ========================================================================== */
 
 export const adminService = {
-  
-async getDashboardStats() {
-  const [students, organizers, events, clubs] =
-    await Promise.all([
-      userService.getStudents(),
-      userService.getOrganizers(),
-      eventService.getEvents({ includeCompleted: true }),
-      clubService.getClubs()
-    ]);
-
-  return {
-    totalStudents: students.length,
-    totalOrganizers: organizers.length,
-    totalUsers: students.length + organizers.length,
-    totalEvents: events.length,
-    totalClubs: clubs.length
-  };
-},
-
   async getEvents(filters = {}) {
     return eventService.getEvents({ ...filters, includeCompleted: true })
   },
@@ -661,17 +578,42 @@ export function normalizeBackendClub(item) {
 
 export const clubService = {
   async getClubs({ category, search, status } = {}) {
-    const params = {}
-    if (category && category !== 'All') params.category = category
-    if (search && search.trim()) params.search = search.trim()
-    if (status && status !== 'All') params.status = status
-    const res = await apiClient.get('/clubs', { params })
-    const clubs = res.data?.data ?? res.data
+    try {
+      const params = {}
+      if (category && category !== 'All') params.category = category
+      if (search && search.trim()) params.search = search.trim()
+      if (status && status !== 'All') params.status = status
+      const res = await apiClient.get('/clubs', { params })
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        return res.data.map(normalizeBackendClub)
+      }
+    } catch (e) {
+      void e
+    }
 
-if (!Array.isArray(clubs))
-  throw new Error('Club API returned an invalid response')
-
-return clubs.map(normalizeBackendClub)
+    let list = inMemoryClubs
+    if (category && category !== 'All') {
+      list = list.filter(
+        (c) =>
+          (c.category || '').toLowerCase() === category.toLowerCase() ||
+          (c.committee || '').toLowerCase() === category.toLowerCase()
+      )
+    }
+    if (status && status !== 'All') {
+      list = list.filter((c) => (c.status || 'Active').toLowerCase() === status.toLowerCase())
+    }
+    if (search && search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(
+        (c) =>
+          (c.name || '').toLowerCase().includes(q) ||
+          (c.shortName || '').toLowerCase().includes(q) ||
+          (c.lead || '').toLowerCase().includes(q) ||
+          (c.description || '').toLowerCase().includes(q) ||
+          (c.tags && c.tags.some((t) => t.toLowerCase().includes(q)))
+      )
+    }
+    return list
   },
 
   async getClubById(clubId) {
@@ -679,10 +621,9 @@ return clubs.map(normalizeBackendClub)
       const res = await apiClient.get(`/clubs/${clubId}`)
       if (res.data) return normalizeBackendClub(res.data)
     } catch (e) {
-      // A 404 means the club is inactive/hidden or does not exist; never show stale local data.
-      if (e?.response?.status === 404) return null
+      void e
     }
-    return inMemoryClubs.find((c) => String(c.id) === String(clubId) && (c.status || 'Active').toLowerCase() === 'active') || null
+    return inMemoryClubs.find((c) => c.id === clubId) || null
   },
 
   async createClub(clubData) {
@@ -744,23 +685,20 @@ return clubs.map(normalizeBackendClub)
 
 export const categoryService = {
   async getCategories({ search, status } = {}) {
-    const params = {}
-    if (status && status !== 'All') params.status = status
-    if (search && search.trim()) params.search = search.trim()
-    const res = await apiClient.get('/categories', { params })
-    const categories = Array.isArray(res.data) ? res.data : res.data?.data
-    if (!Array.isArray(categories)) throw new Error('Category API returned an invalid response')
-    return categories
+    let list = inMemoryCategories
+    if (status && status !== 'All') {
+      list = list.filter((c) => (c.status || 'Active').toLowerCase() === status.toLowerCase())
+    }
+    if (search && search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(
+        (c) => (c.name || '').toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q)
+      )
+    }
+    return list
   },
 
   async getCategoryById(id) {
-    try {
-      const res = await apiClient.get(`/categories/${id}`)
-      const cat = res.data?.data ?? res.data
-      if (cat) return cat
-    } catch (e) {
-      void e
-    }
     return inMemoryCategories.find((c) => c.id === id) || null
   },
 
@@ -789,13 +727,15 @@ export const categoryService = {
       description: catData.description || '',
       status: catData.status || 'Active',
     }
-    const res = await apiClient.post('/categories', newCategory)
-    return res.data?.data ?? res.data
+    inMemoryCategories = [...inMemoryCategories, newCategory]
+    return newCategory
   },
 
   async updateCategory(id, catData) {
-    let themeTokens = {}
-    if (catData.colorTheme) {
+    const index = inMemoryCategories.findIndex((c) => c.id === id)
+    if (index !== -1) {
+      let themeTokens = {}
+      if (catData.colorTheme) {
         const themeMap = {
           lavender: { bgClass: 'bg-[#ede8f8] border-[#ddd4f3]', activeBg: 'bg-[#ded4f5] border-[#8c7fb4]', textColor: 'text-[#392e59]' },
           blush: { bgClass: 'bg-[#faeaee] border-[#eed2d9]', activeBg: 'bg-[#eed2d9] border-[#dfabb8]', textColor: 'text-[#5f2e3c]' },
@@ -804,16 +744,20 @@ export const categoryService = {
           mauve: { bgClass: 'bg-[#eeebf6] border-[#dad4ea]', activeBg: 'bg-[#ded6f1] border-[#8c7fb4]', textColor: 'text-[#41355c]' },
         }
         themeTokens = themeMap[catData.colorTheme] || {}
+      }
+      inMemoryCategories[index] = { ...inMemoryCategories[index], ...catData, ...themeTokens }
+      return inMemoryCategories[index]
     }
-    const { colorTheme, ...rest } = catData
-    void colorTheme
-    const res = await apiClient.put(`/categories/${id}`, { ...rest, ...themeTokens })
-    return res.data?.data ?? res.data
+    return null
   },
 
   async updateCategoryStatus(id, status) {
-    const res = await apiClient.put(`/categories/${id}`, { status })
-    return res.data?.data ?? res.data
+    const index = inMemoryCategories.findIndex((c) => c.id === id)
+    if (index !== -1) {
+      inMemoryCategories[index] = { ...inMemoryCategories[index], status }
+      return inMemoryCategories[index]
+    }
+    return null
   },
 }
 
@@ -828,8 +772,8 @@ export const registrationService = {
   async registerForEvent(eventId, registrationData = {}) {
     const numericId = parseInt(eventId, 10)
     const payload = {
-      student_roll: registrationData.studentRoll || registrationData.studentId || null,
-      department: registrationData.department || registrationData.branch || null,
+      student_roll: registrationData.studentRoll || registrationData.studentId || '202351001',
+      department: registrationData.department || registrationData.branch || 'CSE',
       student_name: registrationData.fullName || registrationData.name || null,
     }
 
@@ -847,9 +791,12 @@ export const registrationService = {
       }
     } catch (err) {
       if (err.response?.status === 409) {
-        const registrationError = new Error(err.response.data?.detail || 'Already registered or event is full.')
-        registrationError.response = err.response
-        throw registrationError
+        return {
+          success: false,
+          message: err.response.data?.detail || 'Already registered or event is full.',
+          alreadyRegistered: (err.response.data?.detail || '').toLowerCase().includes('already'),
+          isFull: (err.response.data?.detail || '').toLowerCase().includes('limit') || (err.response.data?.detail || '').toLowerCase().includes('full'),
+        }
       }
       throw err
     }
@@ -911,24 +858,17 @@ export const userService = {
     const currentUser = authService.getCurrentUser()
     if (currentUser) {
       return {
-        ...currentUser,
         id: currentUser.id,
-        studentId: currentUser.studentId || '',
+        studentId: '202351001',
         name: currentUser.name,
         email: currentUser.email,
         role: currentUser.role,
-        branch: currentUser.branch || '',
-        year: currentUser.year || '',
-        batch: currentUser.batch || '',
-        avatar: currentUser.avatar || '',
+        branch: 'Computer Science and Engineering',
+        year: '3rd Year',
         registeredEvents: [],
       }
     }
-    try {
-      const response = await apiClient.get('/clubs', { params: { category, search, status } })
-      if (Array.isArray(response.data)) return response.data.map(normalizeBackendClub)
-    } catch (error) { throw error }
-    return []
+    return inMemoryUsers.find((u) => u.role === 'student') || inMemoryUsers[0]
   },
 
   async getStudentRegisteredEvents(studentId = 'user-std-1') {
@@ -955,78 +895,73 @@ export const userService = {
     return events.filter((e) => user.registeredEvents.includes(e.id))
   },
 
-  
-async getStudents({ search, branch, year, status } = {}) {
-  const params = {};
-
-  if (search?.trim()) params.search = search.trim();
-  if (branch && branch !== 'All') params.branch = branch;
-  if (year && year !== 'All') params.year = year;
-  if (status && status !== 'All') params.status = status;
-
-  const res = await apiClient.get('/users/students', { params });
-
-  const students = res.data?.data ?? res.data;
-
-  if (!Array.isArray(students)) {
-    throw new Error('Student API returned an invalid response');
-  }
-
-  return students;
-},
-
-
-  
-async getOrganizers({ search, clubId, status } = {}) {
-  const params = {};
-
-  if (search?.trim()) params.search = search.trim();
-  if (clubId && clubId !== 'All') params.club_id = clubId;
-  if (status && status !== 'All') params.status = status;
-
-  const res = await apiClient.get('/users/organizers', { params });
-
-  const organizers = res.data?.data ?? res.data;
-
-  if (!Array.isArray(organizers)) {
-    throw new Error('Organizer API returned an invalid response');
-  }
-
-  const allEvents = await eventService.getEvents({
-    includeCompleted: true
-  });
-
-  return organizers.map((organizer) => {
-    const events = allEvents.filter(
-      (event) =>
-        String(event.owner_id) === String(organizer.id)
-    );
-
-    return {
-      ...organizer,
-      totalEvents: events.length,
-      upcomingEvents: events.filter(
-        (event) => !event.isHistorical && event.status !== 'Completed'
-      ).length,
-      completedEvents: events.filter(
-        (event) => event.isHistorical || event.status === 'Completed'
-      ).length,
-      totalRegistrations: events.reduce(
-        (sum, event) => sum + (event.registeredCount || 0),
-        0
+  async getStudents({ search, branch, year, status } = {}) {
+    let list = inMemoryUsers.filter((u) => u.role === 'student')
+    if (search && search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.email.toLowerCase().includes(q) ||
+          (s.studentId && s.studentId.toLowerCase().includes(q)) ||
+          (s.branch && s.branch.toLowerCase().includes(q))
       )
-    };
-  });
-},
+    }
+    if (branch && branch !== 'All') {
+      list = list.filter((s) => s.branch.toLowerCase() === branch.toLowerCase())
+    }
+    if (year && year !== 'All') {
+      list = list.filter((s) => s.year.toLowerCase() === year.toLowerCase())
+    }
+    if (status && status !== 'All') {
+      list = list.filter((s) => (s.status || 'Active').toLowerCase() === status.toLowerCase())
+    }
+    return list.map((s) => ({
+      ...s,
+      status: s.status || 'Active',
+      registeredCount: s.registeredEvents ? s.registeredEvents.length : 0,
+    }))
+  },
 
+  async getOrganizers({ search, clubId, status } = {}) {
+    let list = inMemoryUsers.filter((u) => u.role === 'organizer')
+    if (search && search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(
+        (o) =>
+          o.name.toLowerCase().includes(q) ||
+          o.email.toLowerCase().includes(q) ||
+          (o.clubName && o.clubName.toLowerCase().includes(q)) ||
+          (o.committee && o.committee.toLowerCase().includes(q)) ||
+          (o.title && o.title.toLowerCase().includes(q))
+      )
+    }
+    if (clubId && clubId !== 'All') {
+      list = list.filter((o) => o.clubId === clubId)
+    }
+    if (status && status !== 'All') {
+      list = list.filter((o) => (o.status || 'Active').toLowerCase() === status.toLowerCase())
+    }
+
+    const allEvents = await eventService.getEvents({ includeCompleted: true })
+    return list.map((o) => {
+      const events = allEvents.filter((e) => e.owner_id === o.id || e.clubId === o.clubId)
+      const upcoming = events.filter((e) => !e.isHistorical && e.status !== 'Completed').length
+      const completed = events.filter((e) => e.isHistorical || e.status === 'Completed').length
+      const totalRegistrations = events.reduce((sum, e) => sum + (e.registeredCount || 0), 0)
+
+      return {
+        ...o,
+        status: o.status || 'Active',
+        totalEvents: events.length,
+        upcomingEvents: upcoming,
+        completedEvents: completed,
+        totalRegistrations,
+      }
+    })
+  },
 
   async getUserById(id) {
-    try {
-      const res = await apiClient.get(`/users/${id}`)
-      if (res.data) return { ...res.data, status: res.data.status || 'Active' }
-    } catch (e) {
-      void e
-    }
     const user = inMemoryUsers.find((u) => u.id === id || u.studentId === id) || null
     if (!user) return null
     return { ...user, status: user.status || 'Active' }
@@ -1034,11 +969,7 @@ async getOrganizers({ search, clubId, status } = {}) {
 
   async getStudentRegistrations(studentId) {
     try {
-      // Admins look at a specific student; students look at their own list.
-      const isAdmin = authService.getCurrentUser()?.role === 'admin'
-      const myRegs = isAdmin
-        ? (await apiClient.get(`/users/${studentId}/registrations`)).data
-        : await registrationService.getMyRegistrations()
+      const myRegs = await registrationService.getMyRegistrations()
       if (Array.isArray(myRegs) && myRegs.length > 0) {
         return myRegs.map((r) => ({
           id: r.id,
@@ -1103,37 +1034,24 @@ async getOrganizers({ search, clubId, status } = {}) {
     return results
   },
 
-  
-async getOrganizerEvents(organizerId) {
-  const all = await eventService.getEvents({
-    includeCompleted: true,
-  })
+  async getOrganizerEvents(organizerId) {
+    const all = await eventService.getEvents({ includeCompleted: true })
+    const currentUser = authService.getCurrentUser()
 
-  const currentUser = authService.getCurrentUser()
-
-  // Organizers can only see their own events.
-  if (currentUser?.role === 'organizer' && currentUser.id) {
-    return all.filter(
-      (event) =>
-        String(event.owner_id) === String(currentUser.id)
-    )
-  }
-
-  // Admins can see all events or filter by a selected organizer.
-  if (currentUser?.role === 'admin') {
-    if (organizerId) {
-      return all.filter(
-        (event) =>
-          String(event.owner_id) === String(organizerId)
-      )
+    if (currentUser?.role === 'organizer' && currentUser.id) {
+      const scoped = all.filter((e) => e.owner_id === currentUser.id)
+      return scoped.length > 0 ? scoped : all
     }
 
+    if (organizerId) {
+      const numericId = parseInt(organizerId, 10)
+      if (!isNaN(numericId)) {
+        const scoped = all.filter((e) => e.owner_id === numericId)
+        if (scoped.length > 0) return scoped
+      }
+    }
     return all
-  }
-
-  return []
-},
-
+  },
 
   async updateUser(userId, updates) {
     const index = inMemoryUsers.findIndex((u) => u.id === userId || u.studentId === userId)
@@ -1145,15 +1063,7 @@ async getOrganizerEvents(organizerId) {
   },
 
   async updateUserStatus(userId, status) {
-    try {
-      const res = await apiClient.patch(`/users/${userId}/status`, { status })
-      return { success: true, user: res.data }
-    } catch (err) {
-      if (err.response) {
-        return { success: false, message: err.response.data?.detail || 'Could not update user status.' }
-      }
-      return this.updateUser(userId, { status })
-    }
+    return this.updateUser(userId, { status })
   },
 }
 
@@ -1205,23 +1115,22 @@ export const announcementService = {
     if (category && category !== 'All') params.category = category
     if (search && search.trim()) params.search = search.trim()
     const res = await apiClient.get('/announcements', { params })
-    const list = res.data?.data ?? res.data
-    return Array.isArray(list) ? list : []
+    return Array.isArray(res.data) ? res.data : []
   },
 
   async getAnnouncementById(id) {
     const res = await apiClient.get(`/announcements/${id}`)
-    return res.data?.data ?? res.data
+    return res.data
   },
 
   async createAnnouncement(data) {
     const res = await apiClient.post('/announcements', data)
-    return res.data?.data ?? res.data
+    return res.data
   },
 
   async updateAnnouncement(id, data) {
     const res = await apiClient.put(`/announcements/${id}`, data)
-    return res.data?.data ?? res.data
+    return res.data
   },
 
   async deleteAnnouncement(id) {

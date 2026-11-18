@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { getOrganizerEvents, deleteEvent } from '../../services/api'
+import { getOrganizerEvents } from '../../services/api'
 import Badge from '../../components/common/Badge'
 import Card from '../../components/common/Card'
 import Button from '../../components/common/Button'
@@ -17,7 +17,6 @@ import {
   Settings2,
   AlertCircle,
   RefreshCw,
-  Trash2,
 } from 'lucide-react'
 
 const categoryBadgeMap = {
@@ -40,18 +39,6 @@ export default function OrganizerEvents() {
   const [allEvents, setAllEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [deletingId, setDeletingId] = useState(null)
-
-  const handleDelete = async (event) => {
-    if (!window.confirm(`Delete “${event.title || event.name}”? This will also remove its registrations.`)) return
-    setDeletingId(event.id)
-    try {
-      await deleteEvent(event.id)
-      setAllEvents((items) => items.filter((item) => String(item.id) !== String(event.id)))
-    } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'Unable to delete event')
-    } finally { setDeletingId(null) }
-  }
 
   const handleRetry = async () => {
     setLoading(true)
@@ -314,15 +301,6 @@ export default function OrganizerEvents() {
                       <Pencil className="w-3 h-3" />
                       Edit
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(event)}
-                      disabled={deletingId === event.id}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#faeaee] text-[#a33d58] text-xs font-semibold hover:bg-[#f4dbe2] disabled:opacity-50"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      {deletingId === event.id ? 'Deleting…' : 'Delete'}
-                    </button>
                   </div>
                 </div>
               )

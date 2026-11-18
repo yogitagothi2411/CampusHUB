@@ -31,7 +31,7 @@ export default function AdminLogin() {
     setLoading(true)
 
     try {
-      const loggedUser = await login(email, password, 'admin')
+      const loggedUser = await login(email, password)
       if (loggedUser.role !== 'admin') {
         logout()
         setError('Access denied. This account does not have administrator privileges.')

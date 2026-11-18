@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import { useAuth } from '../../context/useAuth'
+import { useState } from 'react'
 import { registerForEvent } from '../../services/api'
 import Input from '../common/Input'
 import Button from '../common/Button'
@@ -12,7 +11,6 @@ export default function RegistrationModal({
   onClose,
   onRegisterSuccess,
 }) {
-  const { user } = useAuth()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [studentId, setStudentId] = useState('')
@@ -21,15 +19,6 @@ export default function RegistrationModal({
   const [ticketId, setTicketId] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [apiError, setApiError] = useState(null)
-
-  useEffect(() => {
-    if (!isOpen || !user) return
-    setFullName(user.name || '')
-    setEmail(user.email || '')
-    setStudentId(user.studentId || user.student_id || '')
-    setDepartment(user.branch || user.department || '')
-    setApiError(null)
-  }, [isOpen, user])
 
   if (!isOpen || !event) return null
 
@@ -45,7 +34,7 @@ export default function RegistrationModal({
         studentId,
         department,
       })
-      const passId = res?.ticketId || res?.ticket_id || ''
+      const passId = res?.ticketId || `CEH-${Math.floor(1000 + Math.random() * 9000)}`
       setTicketId(passId)
       setSubmitted(true)
       if (onRegisterSuccess) {
@@ -122,7 +111,7 @@ export default function RegistrationModal({
               {/* Pass Badge */}
               <div className="inline-block p-3 rounded-xl bg-[#f0ebf7] border border-[#ddd3eb] text-center">
                 <span className="block text-[10px] uppercase font-bold tracking-wider text-[#7a7088]">
-                  Registration Ticket
+                  Mock Ticket Code
                 </span>
                 <span className="text-base font-mono font-bold text-[#8c7fb4]">
                   {ticketId}
@@ -169,7 +158,6 @@ export default function RegistrationModal({
                   onChange={(e) => setFullName(e.target.value)}
                   icon={User}
                   required
-                  readOnly
                 />
 
                 <Input
@@ -181,7 +169,6 @@ export default function RegistrationModal({
                   onChange={(e) => setEmail(e.target.value)}
                   icon={Mail}
                   required
-                  readOnly
                 />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -193,7 +180,7 @@ export default function RegistrationModal({
                     value={studentId}
                     onChange={(e) => setStudentId(e.target.value)}
                     icon={Hash}
-                    readOnly
+                    required
                   />
 
                   <Input
@@ -204,7 +191,7 @@ export default function RegistrationModal({
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
                     icon={BookOpen}
-                    readOnly
+                    required
                   />
                 </div>
               </div>

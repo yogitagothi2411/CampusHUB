@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { USERS } from '../data/users'
 import Badge from '../components/common/Badge'
 import { useAuth } from '../context/useAuth'
 import {
@@ -32,6 +33,7 @@ const navLinks = [
   { name: 'Profile',       to: '/admin/profile',       icon: UserCircle2,     end: true },
 ]
 
+const adminUser = USERS.find((u) => u.role === 'admin')
 
 function NavItems({ onNavigate }) {
   return (
@@ -68,7 +70,7 @@ export default function AdminLayout() {
     navigate('/')
   }
 
-  const displayName = user?.name || 'Administrator'
+  const displayName = user?.name || adminUser?.name || 'Administrator'
   const initials = displayName
     .split(' ')
     .map((n) => n[0])
@@ -101,9 +103,9 @@ export default function AdminLayout() {
         <div className="px-5 py-4 border-b border-[#c4bacf] shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-[#c8bdd6] flex items-center justify-center text-sm font-bold text-[#3a2d4b] shrink-0">
-              {user?.avatar ? (
+              {adminUser?.avatar ? (
                 <img
-                  src={user.avatar}
+                  src={adminUser.avatar}
                   alt={displayName}
                   className="w-full h-full rounded-full object-cover"
                   onError={(e) => {
@@ -182,7 +184,7 @@ export default function AdminLayout() {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold text-[#1e1730] truncate">
-                {user?.name || 'Administrator'}
+                {adminUser?.name || 'Administrator'}
               </p>
               <Badge variant="mauve" size="sm">Admin</Badge>
             </div>

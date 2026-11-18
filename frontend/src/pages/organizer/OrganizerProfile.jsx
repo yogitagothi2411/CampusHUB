@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { getOrganizerProfile, getOrganizerEvents } from '../../services/api'
 import Badge from '../../components/common/Badge'
 import Card from '../../components/common/Card'
-import ProfileEditor from '../../components/common/ProfileEditor'
 import {
   UserCircle2,
   Mail,
@@ -151,7 +150,6 @@ export default function OrganizerProfile() {
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <ProfileEditor onSaved={(updated) => setProfile((current) => ({ ...current, ...updated }))} />
       {/* Page heading */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-[#fae4d7] flex items-center justify-center shrink-0">

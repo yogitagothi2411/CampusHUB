@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getEvents, getCompletedEvents, getClubs } from '../../services/api'
-import { useAuth } from '../../context/useAuth'
 import { CATEGORIES_CONFIG } from '../../data/categories'
 import EventCard from '../../components/events/EventCard'
 import CategoryCard from '../../components/events/CategoryCard'
@@ -23,7 +22,6 @@ import {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const { user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [timingFilter, setTimingFilter] = useState('all')
 
@@ -117,7 +115,7 @@ export default function Dashboard() {
               <span className="text-xs text-[#7a7088]">• IIIT Vadodara</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1e1730] mt-1.5">
-              Welcome back, {user?.name || 'Student'} 👋
+              Welcome back, Aryan 👋
             </h1>
             <p className="text-sm text-[#5a5168] mt-0.5">
               Discover official college hackathons, sports championships, fests, and workshops

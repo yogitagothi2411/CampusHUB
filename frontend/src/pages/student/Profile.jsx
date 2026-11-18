@@ -4,7 +4,6 @@ import { getCurrentStudent, getStudentRegisteredEvents } from '../../services/ap
 import Card from '../../components/common/Card'
 import Badge from '../../components/common/Badge'
 import Button from '../../components/common/Button'
-import ProfileEditor from '../../components/common/ProfileEditor'
 import {
   Mail,
   GraduationCap,
@@ -60,7 +59,6 @@ export default function Profile() {
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
-      <ProfileEditor onSaved={(updated) => setStudent((current) => ({ ...current, ...updated }))} />
       {/* ── Profile Header Card ─────────────────────────────── */}
       <div className="rounded-3xl border border-[#cfc7df] bg-[#f0ebf8] p-6 sm:p-8 relative overflow-hidden shadow-xs">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
