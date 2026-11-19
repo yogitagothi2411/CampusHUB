@@ -229,3 +229,13 @@ Production bundle: **713 kB JS** / **59 kB CSS** (gzip: 170 kB / 11 kB).
 | 4 | Frontend–backend integration, live API, session persistence | ✅ Complete |
 | 5 | Persistent clubs (SQLite), event registration with capacity enforcement | ✅ Complete |
 | 6 | In-app notifications, college announcements, notification bell UI | ✅ Complete |
+
+
+## 👥 Contributors
+
+| Name | GitHub Profile | Role |
+|---|---|---|
+| Shreya Verma | [@vrmashreya](https://github.com/vrmashreya) | Contributor |
+| Yogita Gothi | [@yogitagothi2411](https://github.com/yogitagothi2411) | Contributor |
+| Sonali Choudhary | [@sonalichoudhary1101](https://github.com/sonalichoudhary1101) | Contributor |
+| Janvi | [@Janvi22-31](https://github.com/Janvi22-31) | Contributor |

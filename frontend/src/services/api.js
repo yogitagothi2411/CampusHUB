@@ -37,7 +37,21 @@ apiClient.interceptors.request.use(
 
 // Response Interceptor: Unified error handling and expired session cleanup
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If backend returns enveloped format { success: true, data: [...] } or { success: true, data: {...} }
+    if (response && response.data && response.data.success !== undefined && response.data.data !== undefined) {
+      const originalAccess = response.data.access_token
+      const unwrapped = response.data.data
+      if (originalAccess && typeof unwrapped === 'object' && unwrapped !== null && !unwrapped.access_token) {
+        unwrapped.access_token = originalAccess
+      }
+      response.data = unwrapped
+      if (originalAccess && typeof response.data === 'object' && response.data !== null && !response.data.access_token) {
+        response.data.access_token = originalAccess
+      }
+    }
+    return response
+  },
   (error) => {
     if (error.response) {
       const status = error.response.status
