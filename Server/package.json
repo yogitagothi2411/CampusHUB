@@ -1,0 +1,17 @@
+{
+  "name": "campushub-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CampusHUB Microservices and API Gateway",
+  "workspaces": [
+    "api-gateway",
+    "services/*"
+  ],
+  "scripts": {
+    "start": "node start.js",
+    "dev": "node start.js",
+    "verify": "node verify-all.js",
+    "seed": "node seed-all.js",
+    "test:health": "node test-health.js"
+  }
+}
