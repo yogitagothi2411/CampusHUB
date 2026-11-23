@@ -37,7 +37,241 @@ campusEventHUB/
 ```
 
 ---
+campusEventHUB
+A campus event management and activity discovery platform designed for IIIT Vadodara. campusEventHUB brings students, event organizers, and administrators together through a single platform for discovering campus activities, managing events, handling registrations, and sharing college announcements.
+Project Links
+- GitHub: https://github.com/yogitagothi2411/CampusHUB
+- Google Drive: https://drive.google.com/drive/folders/1-ekxGUW_AxeZAvrrflxqz0vCRvsnkP4u?usp=drive_link
+Technology Stack
+Frontend
+- React 19
+- Vite
+- Tailwind CSS v4
+- React Router
+- Axios
+- Lucide React
+Backend
+- Node.js
+- Express.js
+- Microservices architecture
+- Express API Gateway with http-proxy-middleware
+- JWT authentication (jsonwebtoken)
+- Password hashing with bcryptjs
+- SQLite databases using better-sqlite3
+- CORS and API rate limiting
+Development Tools
+- npm workspaces
+- ESLint
+- Jest and Supertest dependencies for service tests
+Architecture Overview
+The application is organized into a React frontend and a Node.js microservices backend. The API Gateway is the frontend's single backend entry point and forwards requests to the appropriate service.
+campusEventHUB/
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   │   ├── common/
+│   │   │   └── events/
+│   │   ├── context/             # Authentication context and hooks
+│   │   ├── data/                # Frontend catalog and data modules
+│   │   ├── layouts/             # Student, Organizer and Admin layouts
+│   │   ├── pages/
+│   │   │   ├── admin/
+│   │   │   ├── auth/
+│   │   │   ├── common/
+│   │   │   ├── organizer/
+│   │   │   └── student/
+│   │   ├── routes/
+│   │   ├── services/            # API client
+│   │   └── utils/
+│   ├── .env.example
+│   └── package.json
+│
+├── Server/
+│   ├── api-gateway/
+│   │   └── src/server.js
+│   ├── services/
+│   │   ├── auth-service/
+│   │   ├── user-service/
+│   │   ├── event-service/
+│   │   ├── registration-service/    # Expected by the service manager
+│   │   ├── club-service/
+│   │   ├── notification-service/
+│   │   └── announcement-service/
+│   ├── start.js
+│   ├── seed-all.js
+│   ├── verify-all.js
+│   └── package.json
+│
+├── docs/
+│   ├── Development_plan.md
+│   └── SRS.md
+├── Assignment/
+└── README.md
+Backend services
+Component	Default port	Responsibility
+API Gateway	3000	Single entry point, reverse proxy, request IDs, rate limiting and routing
+Auth Service	3001	Registration, login, JWT issuance and authentication
+User Service	3002	User profile endpoints
+Event Service	3003	Event listing, details, creation, updates and deletion
+Registration Service	3004	Event registration and attendee-related operations
+Club Service	3005	Club and category catalog
+Notification Service	3006	In-app notifications
+Announcement Service	3007	College announcements
 
+
+Each service is designed to own its data and expose its API independently. The service manager in Server/start.js is configured to start all services and the gateway together.
+Features
+Student
+- Browse and discover campus events.
+- Explore event categories and IIIT Vadodara clubs.
+- View event details and past events.
+- Register for events and manage registrations.
+- View announcements and notifications.
+- Manage a student profile.
+Organizer
+- Access an organizer dashboard.
+- Create and manage events.
+- Edit event information.
+- View event registrations and attendee details.
+- Manage an organizer profile.
+Administrator
+- Access an admin dashboard.
+- Manage events, organizers and students.
+- Manage clubs and categories.
+- View reports.
+- Publish and manage college-wide announcements.
+Platform
+- Role-based access for students, organizers and administrators.
+- JWT-based authentication.
+- Password hashing.
+- API Gateway routing to backend services.
+- SQLite-backed service data.
+- API health endpoints.
+Getting Started
+Prerequisites
+Install the following before running the project:
+- Node.js 20 or later
+- npm (included with Node.js)
+- Git
+Check your installed versions:
+node --version
+npm --version
+1. Configure the frontend
+Open a terminal in the project root:
+cd frontend
+npm install
+Create a .env file in frontend/ using .env.example as a reference:
+VITE_API_BASE_URL=http://localhost:3000
+Start the frontend development server:
+npm run dev
+Vite normally serves the application at:
+http://localhost:5173
+2. Configure and start the Node.js backend
+Open a second terminal from the project root:
+cd Server
+npm install
+Create the gateway environment file at Server/api-gateway/.env using Server/api-gateway/.env.example as the reference. The example configures the gateway on port 3000 and the service URLs on ports 3001–`3007`.
+
+Seed the catalog data:
+npm run seed
+Start the services:
+npm start
+The API Gateway is intended to be available at:
+http://localhost:3000
+Gateway health check:
+http://localhost:3000/health
+Stop the service manager with Ctrl+C.
+Important repository setup note: In the supplied project archive, Server/start.js and Server/verify-all.js both expect Server/services/registration-service/src/server.js, but the registration-service directory is not present in that archive. The launcher therefore cannot start all eight processes successfully until that service is added or the launcher and gateway configuration are updated to match the implemented services. The registration service is listed above because the current service manager and gateway configuration expect it; its implementation could not be verified in the supplied folder.
+
+Environment Variables
+Frontend — frontend/.env
+VITE_API_BASE_URL=http://localhost:3000
+API Gateway — Server/api-gateway/.env
+Start with the committed Server/api-gateway/.env.example:
+PORT=3000
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+AUTH_SERVICE_URL=http://localhost:3001
+USER_SERVICE_URL=http://localhost:3002
+EVENT_SERVICE_URL=http://localhost:3003
+REGISTRATION_SERVICE_URL=http://localhost:3004
+CLUB_SERVICE_URL=http://localhost:3005
+NOTIFICATION_SERVICE_URL=http://localhost:3006
+ANNOUNCEMENT_SERVICE_URL=http://localhost:3007
+Keep local .env files and secrets out of version control. Use the .env.example files as templates and change demo credentials before any deployment.
+API Overview
+The API Gateway runs on http://localhost:3000. The gateway forwards API requests under /api/v1 to their respective services.
+Method	Gateway endpoint	Purpose
+GET	/health	API Gateway health check
+POST	/api/v1/auth/register	Register a student or organizer
+POST	/api/v1/auth/login	Authenticate and receive a JWT
+GET	/api/v1/auth/me	Get the authenticated user's identity
+GET	/api/v1/users/me	Get the user's profile
+GET	/api/v1/events	List campus events
+GET	/api/v1/clubs	List clubs
+GET	/api/v1/categories	List categories
+GET	/api/v1/announcements	List published announcements
+GET	/api/v1/notifications/me	List the current user's notifications
+GET	/api/v1/registrations/me	List the current user's registrations
+
+
+The gateway also routes event-specific registration requests to the registration service:
+/api/v1/events/:id/registrations
+For request details and authorization rules, refer to the individual service route files under Server/services/*/src/routes.js.
+Authentication and Demo Accounts
+The service documentation provides the following demo accounts:
+Role	Email	Password
+Admin	admin@iiitvadodara.ac.in	admin123
+Organizer	organizer@iiitvadodara.ac.in	organizer123
+Student	student@iiitvadodara.ac.in	student123
+
+
+Public registration is intended for student and organizer accounts. The admin account is seeded rather than publicly registered.
+Security: These are development/demo credentials. Replace them and use secure secrets before deploying the application. Never commit real passwords, tokens or populated environment files.
+
+Database
+The Node.js services use SQLite through better-sqlite3. The service documentation and source tree show separate service-owned database files, including:
+- auth.sqlite
+- events.sqlite
+- clubs.sqlite
+- notifications.sqlite
+- announcements.sqlite
+Database files are runtime data and should not be committed as application source. The supplied archive also contains local database files and an older Python backend directory; the active Node.js backend described in this README is under Server/.
+Scripts and Quality Checks
+Run these commands from Server/:
+Command	Purpose
+npm install	Install backend workspace dependencies
+npm run seed	Seed club/category and event catalog data
+npm start	Start the service manager and API Gateway
+npm run verify	Start services and run the end-to-end health verification script
+npm run test:health	Run the health test script
+
+
+Run these commands from frontend/:
+Command	Purpose
+npm install	Install frontend dependencies
+npm run dev	Start the Vite development server
+npm run lint	Run ESLint
+npm run build	Create a production build
+npm run preview	Preview the production build locally
+
+
+The supplied archive includes Jest and Supertest as service development dependencies. Individual service test scripts are defined in the service package.json files; run npm test from a service directory that contains its tests.
+The full backend verification command depends on all services expected by Server/start.js being present and runnable. See the registration-service setup note in Getting Started.
+
+Documentation
+Additional project documentation is available in:
+- docs/SRS.md — Software Requirements Specification.
+- docs/Development_plan.md — Development plan.
+- Server/README.md — Backend microservices architecture and startup notes.
+- Server/services/*/README.md — Service-specific notes.
+Contributors
+Name	GitHub Profile	Role
+Shreya Verma	@vrmashreya	Contributor
+Yogita Gothi	@yogitagothi2411	Contributor
+Sonali Choudhary	@sonalichoudhary1101	Contributor
+Janvi	@Janvi22-31	Contributor
 ## Quick Start & Running Locally
 
 ### 1. Backend Terminal (FastAPI)
